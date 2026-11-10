@@ -1,6 +1,7 @@
 import { useRef, useState, type FormEvent } from "react";
 import { Paperclip } from "lucide-react";
-import { api, messageOf, money, today } from "./api";
+import { api, messageOf, money, monthInText, today } from "./api";
+import { useI18n } from "./i18n";
 import { ErrorNotice, Modal, SubmitButton } from "./components";
 import type {
   BudgetCategory,
@@ -38,6 +39,7 @@ export default function ActionModal({
   onClose: () => void;
   onSaved: (message: string, month?: string) => void;
 }) {
+  const { t, ts } = useI18n();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const requestId = useRef(crypto.randomUUID());
@@ -53,25 +55,23 @@ export default function ActionModal({
     (item) => item.is_active || item.id === expense?.category_id,
   );
   const titles: Record<Action["kind"], string> = {
-    expense: expense ? "Edit expense" : "Add an expense",
-    income: "Add income",
-    limit: "Set a monthly limit",
-    transfer: "Give your budget a little room",
-    category: category ? "Edit category" : "New category",
-    member: "Add a household member",
-    family: "Your household",
-    "new-family": "Create another household",
-    "delete-expense": "Delete this expense?",
-    "delete-income": "Delete this income?",
+    expense: t(expense ? "modal.expenseEdit" : "modal.expenseAdd"),
+    income: t("modal.income"),
+    limit: t("modal.limit"),
+    transfer: t("modal.transfer"),
+    category: t(category ? "modal.categoryEdit" : "modal.categoryNew"),
+    member: t("modal.member"),
+    family: t("modal.family"),
+    "new-family": t("modal.newFamily"),
+    "delete-expense": t("modal.deleteExpense"),
+    "delete-income": t("modal.deleteIncome"),
   };
   const subtitles: Partial<Record<Action["kind"], string>> = {
-    expense: "A quick note now. A clearer picture later.",
-    transfer:
-      "Move part of one category’s limit to another. Your total plan stays the same.",
-    member:
-      "They’ll need an existing account. Use the email they signed up with.",
-    limit: "A little intention for the month ahead.",
-    category: "Keep your spending organized in a way that makes sense to you.",
+    expense: t("modal.subExpense"),
+    transfer: t("modal.subTransfer"),
+    member: t("modal.subMember"),
+    limit: t("modal.subLimit"),
+    category: t("modal.subCategory"),
   };
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -116,14 +116,16 @@ export default function ActionModal({
             });
           } catch (error) {
             throw new Error(
-              `The expense was saved, but the receipt wasn’t attached. ${messageOf(error)} Try saving again to retry the attachment.`,
+              t("toast.receiptFailed", { error: ts(messageOf(error)) }),
             );
           }
         }
         onSaved(
-          result.status === "Needs review"
-            ? "Expense saved for review. It won’t count toward totals yet."
-            : "Expense saved. Your household budget is up to date.",
+          t(
+            result.status === "Needs review"
+              ? "toast.expenseReview"
+              : "toast.expense",
+          ),
           values.expense_date.slice(0, 7),
         );
       } else if (action.kind === "income") {
@@ -133,10 +135,7 @@ export default function ActionModal({
           income_date: values.income_date,
           client_request_id: requestId.current,
         });
-        onSaved(
-          "Income added to your household.",
-          values.income_date.slice(0, 7),
-        );
+        onSaved(t("toast.income"), values.income_date.slice(0, 7));
       } else if (action.kind === "limit") {
         await send(
           `${base}/limits`,
@@ -147,7 +146,7 @@ export default function ActionModal({
           },
           "PUT",
         );
-        onSaved("Monthly limit updated. The change is saved in your history.");
+        onSaved(t("toast.limit"));
       } else if (action.kind === "transfer") {
         await send(`${base}/limits/transfer`, {
           source_category_id: Number(values.source_category_id),
@@ -155,36 +154,34 @@ export default function ActionModal({
           budget_month: month,
           amount_kzt: Number(values.amount_kzt),
         });
-        onSaved("Budget moved. Both limits have been updated together.");
+        onSaved(t("toast.transfer"));
       } else if (action.kind === "category") {
         await send(
           `${base}/categories${category ? `/${category.id}` : ""}`,
           { name: values.name, is_active: values.is_active === "true" },
           category ? "PUT" : "POST",
         );
-        onSaved(
-          category ? "Category updated." : "Category added to your household.",
-        );
+        onSaved(t(category ? "toast.categoryUpdated" : "toast.categoryAdded"));
       } else if (action.kind === "member") {
         await send(`${base}/members`, {
           email: values.email,
           role: values.role,
         });
-        onSaved("Your household has a new member.");
+        onSaved(t("toast.member"));
       } else if (action.kind === "family") {
         await send(base, { name: values.name }, "PATCH");
-        onSaved("Household name updated.");
+        onSaved(t("toast.familyName"));
       } else if (action.kind === "new-family") {
         await send("/families", { name: values.name });
-        onSaved("Household created. Choose it from the household menu.");
+        onSaved(t("toast.familyCreated"));
       } else if (action.kind === "delete-expense") {
         await api(`${base}/expenses/${action.expense.id}`, {
           method: "DELETE",
         });
-        onSaved("Expense deleted. Your totals have been updated.");
+        onSaved(t("toast.expenseDeleted"));
       } else if (action.kind === "delete-income") {
         await api(`${base}/income/${action.income.id}`, { method: "DELETE" });
-        onSaved("Income entry deleted.");
+        onSaved(t("toast.incomeDeleted"));
       }
     } catch (error) {
       setError(messageOf(error));
@@ -227,12 +224,12 @@ export default function ActionModal({
       {label}
       <select name={name} defaultValue={defaultValue ?? ""} required>
         <option value="" disabled>
-          Choose a category
+          {t("form.chooseCategory")}
         </option>
         {options.map((item) => (
           <option key={item.id} value={item.id}>
-            {item.name}
-            {!item.is_active ? " (archived)" : ""}
+            {ts(item.name)}
+            {!item.is_active ? ` ${t("form.archivedSuffix")}` : ""}
           </option>
         ))}
       </select>
@@ -249,15 +246,15 @@ export default function ActionModal({
         <fieldset disabled={busy}>
           {action.kind === "expense" && (
             <>
-              {amount("amount_kzt", "Amount", expense?.amount_kzt)}
+              {amount("amount_kzt", t("form.amount"), expense?.amount_kzt)}
               <div className="form-columns">
                 {categorySelect(
                   "category_id",
-                  "Category",
+                  t("form.category"),
                   expense?.category_id,
                 )}
                 <label>
-                  Date
+                  {t("form.date")}
                   <input
                     name="expense_date"
                     type="date"
@@ -268,19 +265,20 @@ export default function ActionModal({
                 </label>
               </div>
               <label>
-                What was it for? <span className="muted">(optional)</span>
+                {t("form.whatFor")}{" "}
+                <span className="muted">{t("form.optional")}</span>
                 <input
                   name="note"
                   maxLength={160}
-                  placeholder="e.g. Weekly groceries at Magnum"
+                  placeholder={t("form.notePh")}
                   defaultValue={expense?.note}
                 />
               </label>
               <label>
-                Status
+                {t("form.status")}
                 <select name="status" defaultValue={expense?.status ?? "Saved"}>
-                  <option>Saved</option>
-                  <option>Needs review</option>
+                  <option value="Saved">{ts("Saved")}</option>
+                  <option value="Needs review">{ts("Needs review")}</option>
                 </select>
               </label>
               <label className="upload-field">
@@ -288,11 +286,13 @@ export default function ActionModal({
                 <span>
                   <strong>
                     {file?.name ??
-                      (expense?.has_receipt
-                        ? "Replace receipt photo"
-                        : "Attach a receipt")}
+                      t(
+                        expense?.has_receipt
+                          ? "form.replaceReceipt"
+                          : "form.attachReceipt",
+                      )}
                   </strong>
-                  <small>JPG, PNG or WebP · up to 5 MB</small>
+                  <small>{t("form.receiptHint")}</small>
                 </span>
                 <input
                   type="file"
@@ -300,7 +300,7 @@ export default function ActionModal({
                   onChange={(e) => {
                     const selected = e.target.files?.[0];
                     if (selected && selected.size > 5 * 1024 * 1024) {
-                      setError("Choose a receipt smaller than 5 MB.");
+                      setError(t("form.receiptTooBig"));
                       e.target.value = "";
                       setFile(null);
                     } else {
@@ -310,26 +310,23 @@ export default function ActionModal({
                   }}
                 />
               </label>
-              <p className="form-hint">
-                Review entries are kept out of your budget totals until they’re
-                marked Saved.
-              </p>
+              <p className="form-hint">{t("form.reviewHint")}</p>
             </>
           )}
           {action.kind === "income" && (
             <>
-              {amount("amount_kzt", "Amount")}
+              {amount("amount_kzt", t("form.amount"))}
               <label>
-                Source
+                {t("form.source")}
                 <input
                   name="source"
-                  placeholder="e.g. October salary"
+                  placeholder={t("form.sourcePh")}
                   maxLength={80}
                   required
                 />
               </label>
               <label>
-                Date received
+                {t("form.dateReceived")}
                 <input
                   name="income_date"
                   type="date"
@@ -344,18 +341,18 @@ export default function ActionModal({
             <>
               {categorySelect(
                 "category_id",
-                "Category",
+                t("form.category"),
                 category?.id,
                 data.categories,
               )}
               {amount(
                 "limit_kzt",
-                "Monthly limit",
+                t("form.monthlyLimit"),
                 (category as BudgetCategory)?.limit_kzt ?? undefined,
                 1000000000,
               )}
               <p className="form-hint">
-                This changes the plan for {month} only.
+                {t("form.limitHint", { month: monthInText(month) })}
               </p>
             </>
           )}
@@ -363,7 +360,7 @@ export default function ActionModal({
             <>
               {categorySelect(
                 "source_category_id",
-                "Move from",
+                t("form.moveFrom"),
                 undefined,
                 data.summary.categories.filter(
                   (item) => item.limit_kzt !== null,
@@ -371,83 +368,75 @@ export default function ActionModal({
               )}
               {categorySelect(
                 "destination_category_id",
-                "Move to",
+                t("form.moveTo"),
                 undefined,
                 data.summary.categories.filter(
                   (item) => item.limit_kzt !== null,
                 ),
               )}
-              {amount("amount_kzt", "Amount to move")}
-              <p className="form-hint">
-                The source category must keep a limit of at least ₸1.
-              </p>
+              {amount("amount_kzt", t("form.amountToMove"))}
+              <p className="form-hint">{t("form.transferHint")}</p>
             </>
           )}
           {action.kind === "category" && (
             <>
               <label>
-                Category name
+                {t("form.categoryName")}
                 <input
                   name="name"
                   defaultValue={category?.name}
                   maxLength={30}
                   required
-                  placeholder="e.g. Health & wellbeing"
+                  placeholder={t("form.categoryPh")}
                   autoFocus
                 />
               </label>
               <label>
-                Status
+                {t("form.status")}
                 <select
                   name="is_active"
                   defaultValue={
                     category?.is_active === false ? "false" : "true"
                   }
                 >
-                  <option value="true">Active</option>
-                  <option value="false">Archived</option>
+                  <option value="true">{t("form.active")}</option>
+                  <option value="false">{t("form.archived")}</option>
                 </select>
               </label>
-              <p className="form-hint">
-                Archiving hides a category from new purchases. Its history stays
-                intact.
-              </p>
+              <p className="form-hint">{t("form.archiveHint")}</p>
             </>
           )}
           {action.kind === "member" && (
             <>
               <label>
-                Email address
+                {t("auth.email")}
                 <input
                   name="email"
                   type="email"
                   maxLength={100}
-                  placeholder="name@example.com"
+                  placeholder={t("form.memberEmailPh")}
                   required
                   autoFocus
                 />
               </label>
               <label>
-                Household role
+                {t("form.householdRole")}
                 <select name="role" defaultValue="Member">
-                  <option>Member</option>
-                  <option>Admin</option>
+                  <option value="Member">{ts("Member")}</option>
+                  <option value="Admin">{ts("Admin")}</option>
                 </select>
               </label>
-              <p className="form-hint">
-                Members see household totals and manage their own expenses.
-                Admins can manage all expenses, categories, and limits.
-              </p>
+              <p className="form-hint">{t("form.roleHint")}</p>
             </>
           )}
           {(action.kind === "family" || action.kind === "new-family") && (
             <label>
-              Household name
+              {t("auth.household")}
               <input
                 name="name"
                 maxLength={50}
                 defaultValue={action.kind === "family" ? family.name : ""}
-                placeholder="e.g. The Sadykov family"
+                placeholder={t("form.householdPh")}
                 required
                 autoFocus
               />
@@ -455,11 +444,10 @@ export default function ActionModal({
           )}
           {action.kind === "delete-expense" && (
             <p className="delete-message">
-              {action.expense.note || action.expense.category_name} ·{" "}
+              {action.expense.note || ts(action.expense.category_name)} ·{" "}
               <strong>{money(action.expense.amount_kzt)}</strong>
               <br />
-              This will remove the expense and its receipt. This action cannot
-              be undone.
+              {t("form.deleteExpenseText")}
             </p>
           )}
           {action.kind === "delete-income" && (
@@ -467,7 +455,7 @@ export default function ActionModal({
               {action.income.source} ·{" "}
               <strong>{money(action.income.amount_kzt)}</strong>
               <br />
-              This will remove the income entry and update your totals.
+              {t("form.deleteIncomeText")}
             </p>
           )}
         </fieldset>
@@ -479,16 +467,18 @@ export default function ActionModal({
             onClick={onClose}
             disabled={busy}
           >
-            Cancel
+            {t("common.cancel")}
           </button>
           <SubmitButton busy={busy}>
-            {action.kind.startsWith("delete")
-              ? "Delete entry"
-              : action.kind === "expense"
-                ? "Save expense"
-                : action.kind === "transfer"
-                  ? "Move budget"
-                  : "Save changes"}
+            {t(
+              action.kind.startsWith("delete")
+                ? "form.deleteEntry"
+                : action.kind === "expense"
+                  ? "form.saveExpense"
+                  : action.kind === "transfer"
+                    ? "form.moveBudget"
+                    : "common.saveChanges",
+            )}
           </SubmitButton>
         </footer>
       </form>

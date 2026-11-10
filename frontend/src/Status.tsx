@@ -8,16 +8,22 @@ import {
   Wallet,
   type LucideIcon,
 } from "lucide-react";
-import { money, monthName, today } from "./api";
+import { money, monthOnly, today } from "./api";
+import { useI18n } from "./i18n";
 import type { BudgetCategory, Summary } from "./types";
 
 export type Level = "good" | "warning" | "critical";
 
-export const levels: Record<Level, { label: string; icon: LucideIcon }> = {
-  good: { label: "On track", icon: CircleCheck },
-  warning: { label: "Close to limit", icon: AlertTriangle },
-  critical: { label: "Over budget", icon: CircleAlert },
+const icons: Record<Level, LucideIcon> = {
+  good: CircleCheck,
+  warning: AlertTriangle,
+  critical: CircleAlert,
 };
+const healthKeys = {
+  good: "status.healthGood",
+  warning: "status.healthWarning",
+  critical: "status.healthCritical",
+} as const;
 
 export const categoryLevel = (category: BudgetCategory): Level | null => {
   if (category.limit_kzt === null || category.used_percent === null)
@@ -33,11 +39,12 @@ export function StatusPill({
   level: Level;
   children?: string;
 }) {
-  const { icon: Icon, label } = levels[level];
+  const { t } = useI18n();
+  const Icon = icons[level];
   return (
     <span className={`status-pill ${level}`}>
       <Icon size={13} strokeWidth={2} />
-      {children ?? label}
+      {children ?? t(`level.${level}`)}
     </span>
   );
 }
@@ -51,6 +58,7 @@ export default function StatusPanel({
   month: string;
   navigate: (view: string) => void;
 }) {
+  const { t } = useI18n();
   const now = today();
   const days = new Date(
     Number(month.slice(0, 4)),
@@ -81,15 +89,17 @@ export default function StatusPanel({
       : counts.warning || (hasPlan && paceGap > summary.planned_kzt * 0.05)
         ? "warning"
         : "good";
-  const headline = !hasPlan
-    ? "No monthly plan yet"
-    : overall === "critical"
-      ? summary.remaining_kzt < 0
-        ? "The month is over budget"
-        : "A category is over its limit"
-      : overall === "warning"
-        ? "Worth a closer look"
-        : "Everything is on track";
+  const headline = t(
+    !hasPlan
+      ? "status.noPlan"
+      : overall === "critical"
+        ? summary.remaining_kzt < 0
+          ? "status.overMonth"
+          : "status.overCategory"
+        : overall === "warning"
+          ? "status.closer"
+          : "status.onTrack",
+  );
 
   const tiles: {
     icon: LucideIcon;
@@ -99,53 +109,55 @@ export default function StatusPanel({
   }[] = [
     {
       icon: Gauge,
-      label: "Spending pace",
+      label: t("status.pace"),
       value: !hasPlan
         ? "—"
         : paceGap > 0
-          ? `${money(paceGap)} over pace`
-          : `${money(-paceGap)} under pace`,
+          ? t("status.paceOver", { amount: money(paceGap) })
+          : t("status.paceUnder", { amount: money(-paceGap) }),
       hint: hasPlan
-        ? `Planned by now: ${money(expected)}`
-        : "Set category limits to see your pace",
+        ? t("status.pacePlanned", { amount: money(expected) })
+        : t("status.paceSetLimits"),
     },
     {
       icon: Wallet,
-      label: "Safe to spend per day",
+      label: t("status.safe"),
       value:
         hasPlan && daysLeft > 0
           ? money(Math.max(Math.floor(summary.remaining_kzt / daysLeft), 0))
           : "—",
       hint:
         daysLeft > 0
-          ? `${money(Math.max(summary.remaining_kzt, 0))} left in the plan`
-          : "This month is closed",
+          ? t("status.safeLeft", {
+              amount: money(Math.max(summary.remaining_kzt, 0)),
+            })
+          : t("status.safeClosed"),
     },
     {
       icon: CalendarDays,
-      label: "Days left",
+      label: t("status.days"),
       value: String(daysLeft),
-      hint: `of ${days} in ${monthName(month).split(" ")[0]}`,
+      hint: t("status.daysOf", { days, month: monthOnly(month) }),
     },
     {
       icon: PiggyBank,
-      label: "Income minus spending",
+      label: t("status.balance"),
       value: `${summary.balance_kzt < 0 ? "−" : ""}${money(Math.abs(summary.balance_kzt))}`,
       hint:
         summary.balance_kzt < 0
-          ? "Spending is above income"
-          : "Left after all expenses",
+          ? t("status.balanceAbove")
+          : t("status.balanceLeft"),
     },
   ];
 
   return (
     <section
       className={`panel status-panel ${overall}`}
-      aria-label="Budget status"
+      aria-label={t("status.aria")}
     >
       <div className="status-head">
         <div>
-          <span className="eyebrow">BUDGET STATUS</span>
+          <span className="eyebrow">{t("status.eyebrow")}</span>
           <h2>{headline}</h2>
         </div>
         {hasPlan && <StatusPill level={overall} />}
@@ -166,7 +178,7 @@ export default function StatusPanel({
           <div
             className="health-bar"
             role="img"
-            aria-label={`${counts.good} categories on track, ${counts.warning} close to the limit, ${counts.critical} over budget`}
+            aria-label={t("status.healthAria", counts)}
           >
             {(Object.keys(counts) as Level[]).map(
               (level) =>
@@ -175,19 +187,18 @@ export default function StatusPanel({
                     key={level}
                     className={level}
                     style={{ flexGrow: counts[level] }}
-                    title={`${levels[level].label}: ${counts[level]}`}
+                    title={`${t(`level.${level}`)}: ${counts[level]}`}
                   />
                 ),
             )}
           </div>
           <div className="health-legend">
             {(Object.keys(counts) as Level[]).map((level) => {
-              const Icon = levels[level].icon;
+              const Icon = icons[level];
               return (
                 <span key={level} className={`health-item ${level}`}>
                   <Icon size={13} strokeWidth={2} />
-                  <strong>{counts[level]}</strong>{" "}
-                  {levels[level].label.toLowerCase()}
+                  <strong>{counts[level]}</strong> {t(healthKeys[level])}
                 </span>
               );
             })}
@@ -199,8 +210,10 @@ export default function StatusPanel({
                 }
               >
                 {summary.review_count > 0
-                  ? `${summary.review_count} to review`
-                  : `${money(summary.unbudgeted_kzt)} without a limit`}
+                  ? t("status.toReview", { count: summary.review_count })
+                  : t("status.unbudgeted", {
+                      amount: money(summary.unbudgeted_kzt),
+                    })}
               </button>
             )}
           </div>

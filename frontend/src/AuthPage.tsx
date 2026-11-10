@@ -11,6 +11,7 @@ import {
 import { api, messageOf } from "./api";
 import { ErrorNotice } from "./components";
 import { ThemeToggle } from "./theme";
+import { LanguageSwitch, useI18n } from "./i18n";
 import type { Session } from "./types";
 
 export default function AuthPage({
@@ -18,6 +19,7 @@ export default function AuthPage({
 }: {
   onLogin: (session: Session) => void;
 }) {
+  const { t } = useI18n();
   const [register, setRegister] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -42,7 +44,10 @@ export default function AuthPage({
   }
   return (
     <main className="auth-layout">
-      <ThemeToggle floating />
+      <div className="floating-controls">
+        <LanguageSwitch />
+        <ThemeToggle />
+      </div>
       <section className="auth-story">
         <a className="brand" href="#">
           <span className="brand-mark">
@@ -50,47 +55,48 @@ export default function AuthPage({
           </span>
           <span>
             family<span className="brand-light">budget</span>
-            <small>A LITTLE MORE IN BALANCE</small>
+            <small>{t("brand.tagline")}</small>
           </span>
         </a>
         <div className="auth-story-main">
-          <span className="eyebrow">FOR THE LIFE YOU SHARE</span>
+          <span className="eyebrow">{t("auth.eyebrow")}</span>
           <h1>
-            Good with money.
+            {t("auth.h1a")}
             <br />
-            <em>Better together.</em>
+            <em>{t("auth.h1b")}</em>
           </h1>
           <p>
-            Every grocery run. Every little plan.
+            {t("auth.p1")}
             <br />
-            One place to keep your family’s money in view.
+            {t("auth.p2")}
           </p>
           <div className="paper-illustration" aria-hidden="true">
             <div className="paper-tab" />
-            <span>THE LITTLE THINGS ADD UP</span>
+            <span>{t("auth.paperTitle")}</span>
             <div className="paper-line">
-              <span>Room for the everyday</span>
+              <span>{t("auth.paper1")}</span>
               <span>✓</span>
             </div>
             <div className="paper-line">
-              <span>Something for the unexpected</span>
+              <span>{t("auth.paper2")}</span>
               <span>✓</span>
             </div>
             <div className="paper-line">
-              <span>A little for what’s next</span>
+              <span>{t("auth.paper3")}</span>
               <span>✓</span>
             </div>
             <div className="paper-bottom">
-              A plan we can all be part of.<span>↗</span>
+              {t("auth.paperBottom")}
+              <span>↗</span>
             </div>
           </div>
         </div>
         <div className="auth-footer">
           <span>
-            <Users size={15} /> Made for your household
+            <Users size={15} /> {t("auth.made")}
           </span>
           <span>
-            <LockKeyhole size={14} /> Private by design
+            <LockKeyhole size={14} /> {t("auth.private")}
           </span>
         </div>
       </section>
@@ -99,38 +105,34 @@ export default function AuthPage({
           <span className="small-logo">
             <ChartNoAxesCombined size={25} />
           </span>
-          <h2>{register ? "Make room for a plan." : "Welcome home."}</h2>
-          <p>
-            {register
-              ? "Start your household’s shared budget."
-              : "A little check-in. A clearer picture."}
-          </p>
+          <h2>{t(register ? "auth.registerTitle" : "auth.loginTitle")}</h2>
+          <p>{t(register ? "auth.registerSub" : "auth.loginSub")}</p>
           <form onSubmit={submit}>
             {register && (
               <>
                 <label>
-                  Your name
+                  {t("auth.name")}
                   <input
                     name="full_name"
                     autoComplete="name"
                     maxLength={60}
-                    placeholder="Aigerim Sadykova"
+                    placeholder={t("auth.namePh")}
                     required
                   />
                 </label>
                 <label>
-                  Household name
+                  {t("auth.household")}
                   <input
                     name="family_name"
                     maxLength={50}
-                    placeholder="The Sadykov family"
+                    placeholder={t("auth.householdPh")}
                     required
                   />
                 </label>
               </>
             )}
             <label>
-              Email address
+              {t("auth.email")}
               <input
                 name="email"
                 type="email"
@@ -141,7 +143,7 @@ export default function AuthPage({
               />
             </label>
             <label>
-              Password
+              {t("auth.password")}
               <div className="password-field">
                 <input
                   name="password"
@@ -149,14 +151,16 @@ export default function AuthPage({
                   minLength={register ? 8 : 1}
                   maxLength={128}
                   autoComplete={register ? "new-password" : "current-password"}
-                  placeholder={
-                    register ? "At least 8 characters" : "Your password"
-                  }
+                  placeholder={t(
+                    register ? "auth.pwPhRegister" : "auth.pwPhLogin",
+                  )}
                   required
                 />
                 <button
                   type="button"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={t(
+                    showPassword ? "auth.hidePassword" : "auth.showPassword",
+                  )}
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
@@ -165,16 +169,12 @@ export default function AuthPage({
             </label>
             {error && <ErrorNotice message={error} />}
             <button className="button primary auth-submit" disabled={busy}>
-              {busy
-                ? "One moment…"
-                : register
-                  ? "Create your household"
-                  : "Sign in"}
+              {t(busy ? "auth.wait" : register ? "auth.create" : "auth.signIn")}
               <ArrowRight size={18} />
             </button>
           </form>
           <p className="auth-switch">
-            {register ? "Already part of a household?" : "New around here?"}{" "}
+            {t(register ? "auth.already" : "auth.newHere")}{" "}
             <button
               className="text-button"
               onClick={() => {
@@ -182,17 +182,15 @@ export default function AuthPage({
                 setError("");
               }}
             >
-              {register ? "Sign in" : "Create an account"}
+              {t(register ? "auth.signIn" : "auth.createAccount")}
             </button>
           </p>
           <div className="auth-note">
             <LockKeyhole size={15} />
-            <span>Your household’s numbers stay in your household.</span>
+            <span>{t("auth.note")}</span>
           </div>
         </div>
-        <span className="auth-copyright">
-          Family Budget Tracker · Built around real life.
-        </span>
+        <span className="auth-copyright">{t("auth.copyright")}</span>
       </section>
     </main>
   );

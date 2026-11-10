@@ -8,10 +8,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { money } from "./api";
+import { money, monthInText } from "./api";
+import { useI18n } from "./i18n";
 import type { Summary } from "./types";
 
 export function SpendingChart({ summary }: { summary: Summary }) {
+  const { t } = useI18n();
+  const unit = t("chart.thousand");
   const days = new Date(
     Number(summary.month.slice(0, 4)),
     Number(summary.month.slice(5)),
@@ -33,7 +36,11 @@ export function SpendingChart({ summary }: { summary: Summary }) {
     <div
       className="chart-wrap"
       role="img"
-      aria-label={`Cumulative spending for ${summary.month}: ${money(summary.spent_kzt)} against a ${money(summary.planned_kzt)} monthly plan.`}
+      aria-label={t("chart.aria", {
+        month: monthInText(summary.month),
+        spent: money(summary.spent_kzt),
+        planned: money(summary.planned_kzt),
+      })}
     >
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart
@@ -69,17 +76,18 @@ export function SpendingChart({ summary }: { summary: Summary }) {
             dy={9}
           />
           <YAxis
+            width={60 + (unit.length > 1 ? 14 : 0)}
             axisLine={false}
             tickLine={false}
             tick={{ fontSize: 10, fill: "var(--chart-tick)" }}
-            tickFormatter={(v) => `${v / 1000}k`}
+            tickFormatter={(v) => (v ? `${v / 1000}${unit}` : "0")}
           />
           <Tooltip
             formatter={(value, name) => [
               money(Number(value)),
-              name === "spent" ? "Spent so far" : "Budget pace",
+              t(name === "spent" ? "chart.spentSoFar" : "chart.pace"),
             ]}
-            labelFormatter={(value) => `Day ${value}`}
+            labelFormatter={(value) => t("chart.day", { day: String(value) })}
             contentStyle={{
               border: "1px solid var(--line)",
               background: "var(--paper)",

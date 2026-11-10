@@ -1,3 +1,5 @@
+import { getLang, getLocale } from "./i18n";
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -41,10 +43,42 @@ export async function api<T>(
   return response.status === 204 ? (undefined as T) : response.json();
 }
 
-export const money = (amount: number) =>
-  `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(amount)} ₸`;
+// Not every browser ships Kazakh formatting data (some print "M10" for
+// October), so Kazakh months are spelled out here and numbers are grouped
+// the same way as in Russian: 160 000.
+const kkMonths = [
+  "қаңтар",
+  "ақпан",
+  "наурыз",
+  "сәуір",
+  "мамыр",
+  "маусым",
+  "шілде",
+  "тамыз",
+  "қыркүйек",
+  "қазан",
+  "қараша",
+  "желтоқсан",
+];
+const kkMonthsShort = [
+  "қаң.",
+  "ақп.",
+  "нау.",
+  "сәу.",
+  "мам.",
+  "мау.",
+  "шіл.",
+  "там.",
+  "қыр.",
+  "қаз.",
+  "қар.",
+  "жел.",
+];
 export const number = (amount: number) =>
-  new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(amount);
+  new Intl.NumberFormat(getLang() === "en" ? "en-US" : "ru-RU", {
+    maximumFractionDigits: 0,
+  }).format(amount);
+export const money = (amount: number) => `${number(amount)} ₸`;
 export const today = () =>
   new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Almaty",
@@ -52,16 +86,34 @@ export const today = () =>
     month: "2-digit",
     day: "2-digit",
   }).format(new Date());
+const monthWord = (month: string) =>
+  getLang() === "kk"
+    ? kkMonths[Number(month.slice(5, 7)) - 1]
+    : new Intl.DateTimeFormat(getLocale(), { month: "long" }).format(
+        new Date(`${month.slice(0, 7)}-01T12:00:00`),
+      );
+/** Month alone, capitalised: "October", "Октябрь", "Қазан". */
+export const monthOnly = (month: string) => {
+  const word = monthWord(month);
+  return word[0].toUpperCase() + word.slice(1);
+};
+/** Heading form: "October 2026", "Октябрь 2026", "Қазан 2026". */
 export const monthName = (month: string) =>
-  new Date(`${month}-01T12:00:00`).toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-  });
+  `${monthOnly(month)} ${month.slice(0, 4)}`;
+/** Form used inside a sentence: "за октябрь 2026", "2026 жылғы қазан". */
+export const monthInText = (month: string) =>
+  getLang() === "en"
+    ? monthName(month)
+    : getLang() === "kk"
+      ? `${month.slice(0, 4)} жылғы ${monthWord(month)}`
+      : `${monthWord(month)} ${month.slice(0, 4)}`;
 export const dateLabel = (date: string) =>
-  new Date(`${date.slice(0, 10)}T12:00:00`).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-  });
+  getLang() === "kk"
+    ? `${Number(date.slice(8, 10))} ${kkMonthsShort[Number(date.slice(5, 7)) - 1]}`
+    : new Date(`${date.slice(0, 10)}T12:00:00`).toLocaleDateString(
+        getLang() === "en" ? "en-GB" : "ru-RU",
+        { day: "numeric", month: "short" },
+      );
 export const initials = (name: string) =>
   name
     .split(" ")

@@ -1,6 +1,7 @@
 import { Archive, BadgeCheck, Pencil, Plus, ShieldCheck } from "lucide-react";
 import { dateLabel, initials } from "./api";
 import { CategoryIcon } from "./components";
+import { useI18n } from "./i18n";
 import type { Action } from "./ActionModal";
 import type { Family, User, Workspace } from "./types";
 
@@ -15,16 +16,18 @@ export default function Household({
   user: User;
   onAction: (action: Action) => void;
 }) {
+  const { t, tn, ts } = useI18n();
   const admin = family.role === "Admin";
   return (
     <>
       <section className="household-banner">
         <div className="household-symbol">{initials(family.name)}</div>
         <div>
-          <span className="eyebrow">YOUR SHARED SPACE</span>
+          <span className="eyebrow">{t("house.eyebrow")}</span>
           <h2>{family.name}</h2>
           <p>
-            {data.members.length} members · KZT · A budget to build together
+            {tn("house.members", data.members.length)} · KZT ·{" "}
+            {t("house.tagline")}
           </p>
         </div>
         {admin && (
@@ -32,7 +35,7 @@ export default function Household({
             className="button secondary"
             onClick={() => onAction({ kind: "family" })}
           >
-            <Pencil size={15} /> Edit name
+            <Pencil size={15} /> {t("house.editName")}
           </button>
         )}
       </section>
@@ -40,15 +43,15 @@ export default function Household({
         <section className="panel">
           <div className="panel-heading">
             <div>
-              <h2>The people behind the plan</h2>
-              <p>Everyone has a part to play.</p>
+              <h2>{t("house.peopleTitle")}</h2>
+              <p>{t("house.peopleSub")}</p>
             </div>
             {admin && (
               <button
                 className="text-button"
                 onClick={() => onAction({ kind: "member" })}
               >
-                <Plus size={16} /> Add member
+                <Plus size={16} /> {t("house.addMember")}
               </button>
             )}
           </div>
@@ -60,16 +63,19 @@ export default function Household({
                   <strong>
                     {member.full_name}
                     {member.id === user.id && (
-                      <small className="you-label">you</small>
+                      <small className="you-label">{t("house.you")}</small>
                     )}
                   </strong>
                   <small>
-                    {member.email ?? `Joined ${dateLabel(member.joined_date)}`}
+                    {member.email ??
+                      t("house.joined", {
+                        date: dateLabel(member.joined_date),
+                      })}
                   </small>
                 </div>
                 <span className={`role-badge ${member.role.toLowerCase()}`}>
                   {member.role === "Admin" && <BadgeCheck size={13} />}
-                  {member.role}
+                  {ts(member.role)}
                 </span>
               </div>
             ))}
@@ -77,26 +83,23 @@ export default function Household({
           <div className="privacy-note">
             <ShieldCheck size={20} />
             <div>
-              <strong>Shared totals. Personal boundaries.</strong>
-              <p>
-                Members manage their own expenses and receipts. Admins manage
-                the household’s full budget. Other households stay private.
-              </p>
+              <strong>{t("house.privacyTitle")}</strong>
+              <p>{t("house.privacyText")}</p>
             </div>
           </div>
         </section>
         <section className="panel">
           <div className="panel-heading">
             <div>
-              <h2>Your spending categories</h2>
-              <p>Organized around the way you live.</p>
+              <h2>{t("house.categoriesTitle")}</h2>
+              <p>{t("house.categoriesSub")}</p>
             </div>
             {admin && (
               <button
                 className="text-button"
                 onClick={() => onAction({ kind: "category" })}
               >
-                <Plus size={16} /> Add
+                <Plus size={16} /> {t("common.add")}
               </button>
             )}
           </div>
@@ -107,16 +110,18 @@ export default function Household({
                 className={!category.is_active ? "archived" : ""}
               >
                 <CategoryIcon name={category.name} small />
-                <span>{category.name}</span>
+                <span>{ts(category.name)}</span>
                 {!category.is_active && (
                   <span className="archived-label">
-                    <Archive size={12} /> Archived
+                    <Archive size={12} /> {t("house.archived")}
                   </span>
                 )}
                 {admin && (
                   <button
                     className="icon-button"
-                    aria-label={`Edit ${category.name}`}
+                    aria-label={t("house.editAria", {
+                      name: ts(category.name),
+                    })}
                     onClick={() => onAction({ kind: "category", category })}
                   >
                     <Pencil size={15} />
@@ -125,22 +130,19 @@ export default function Household({
               </div>
             ))}
           </div>
-          <p className="panel-empty-text">
-            Archived categories keep their history. New expenses use active
-            categories.
-          </p>
+          <p className="panel-empty-text">{t("house.archiveNote")}</p>
         </section>
       </div>
       <div className="new-household">
         <div>
-          <strong>Helping with another household?</strong>
-          <p>You can belong to more than one, with a separate role in each.</p>
+          <strong>{t("house.anotherTitle")}</strong>
+          <p>{t("house.anotherText")}</p>
         </div>
         <button
           className="button secondary"
           onClick={() => onAction({ kind: "new-family" })}
         >
-          <Plus size={16} /> Create household
+          <Plus size={16} /> {t("house.create")}
         </button>
       </div>
     </>

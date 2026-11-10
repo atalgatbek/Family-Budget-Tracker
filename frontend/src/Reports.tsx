@@ -1,41 +1,40 @@
 import { Download } from "lucide-react";
-import { money, monthName } from "./api";
+import { money, monthInText } from "./api";
+import { useI18n } from "./i18n";
 import { CategoryIcon, categoryStyle } from "./components";
 import { SpendingChart } from "./Charts";
 import { downloadCsv } from "./Transactions";
 import type { Summary } from "./types";
 
 export default function Reports({ summary }: { summary: Summary }) {
+  const { t, ts } = useI18n();
   const largest = [...summary.categories].sort(
     (a, b) => b.spent_kzt - a.spent_kzt,
   )[0];
   return (
     <>
       <div className="report-heading">
-        <p>
-          A clear record of where your household’s money went in{" "}
-          {monthName(summary.month)}.
-        </p>
+        <p>{t("reports.intro", { month: monthInText(summary.month) })}</p>
         <button
           className="button secondary"
           onClick={() =>
             downloadCsv(`budget-report-${summary.month}.csv`, [
               [
-                "Category",
-                "Planned KZT",
-                "Spent KZT",
-                "Remaining KZT",
-                "Used %",
+                t("csv.category"),
+                t("csv.planned"),
+                t("csv.spent"),
+                t("csv.remaining"),
+                t("csv.used"),
               ],
               ...summary.categories.map((c) => [
-                c.name,
+                ts(c.name),
                 c.limit_kzt,
                 c.spent_kzt,
                 c.left_kzt,
                 c.used_percent,
               ]),
               [
-                "TOTAL",
+                t("csv.total"),
                 summary.planned_kzt,
                 summary.spent_kzt,
                 summary.remaining_kzt,
@@ -44,26 +43,26 @@ export default function Reports({ summary }: { summary: Summary }) {
             ])
           }
         >
-          <Download size={16} /> Export report
+          <Download size={16} /> {t("reports.export")}
         </button>
       </div>
       <div className="report-metrics">
         <div>
-          <span>Household income</span>
+          <span>{t("reports.income")}</span>
           <strong>{money(summary.income_kzt)}</strong>
         </div>
         <div>
-          <span>Total spending</span>
+          <span>{t("reports.spending")}</span>
           <strong>{money(summary.spent_kzt)}</strong>
         </div>
         <div>
-          <span>Income less spending</span>
+          <span>{t("reports.balance")}</span>
           <strong>{money(summary.balance_kzt)}</strong>
         </div>
         <div>
-          <span>Largest spending category</span>
+          <span>{t("reports.largest")}</span>
           <strong>
-            {largest?.spent_kzt ? largest.name : "No spending yet"}
+            {largest?.spent_kzt ? ts(largest.name) : t("reports.noSpending")}
           </strong>
         </div>
       </div>
@@ -71,8 +70,8 @@ export default function Reports({ summary }: { summary: Summary }) {
         <section className="panel">
           <div className="panel-heading">
             <div>
-              <h2>Where it went</h2>
-              <p>Share of saved expenses, by category</p>
+              <h2>{t("reports.whereTitle")}</h2>
+              <p>{t("reports.whereSub")}</p>
             </div>
           </div>
           <div className="spending-breakdown">
@@ -81,7 +80,7 @@ export default function Reports({ summary }: { summary: Summary }) {
                 <div className="breakdown-label">
                   <span>
                     <CategoryIcon name={category.name} small />
-                    {category.name}
+                    {ts(category.name)}
                   </span>
                   <strong>{money(category.spent_kzt)}</strong>
                 </div>
@@ -100,45 +99,42 @@ export default function Reports({ summary }: { summary: Summary }) {
         <section className="panel">
           <div className="panel-heading">
             <div>
-              <h2>How the month unfolded</h2>
-              <p>Spending compared with your budget pace</p>
+              <h2>{t("reports.unfoldTitle")}</h2>
+              <p>{t("reports.unfoldSub")}</p>
             </div>
           </div>
           <SpendingChart summary={summary} />
-          <p className="panel-empty-text">
-            Solid line: saved expenses · Dotted line: planned daily pace
-          </p>
+          <p className="panel-empty-text">{t("reports.legend")}</p>
         </section>
       </div>
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <h2>The numbers, together</h2>
-            <p>
-              Review entries are excluded. Categories without spending are
-              included.
-            </p>
+            <h2>{t("reports.numbersTitle")}</h2>
+            <p>{t("reports.numbersSub")}</p>
           </div>
         </div>
         <div className="table-scroll">
           <table>
             <thead>
               <tr>
-                <th>Category</th>
-                <th className="align-right">Planned</th>
-                <th className="align-right">Spent</th>
-                <th className="align-right">Remaining</th>
-                <th className="align-right">Used</th>
+                <th>{t("table.category")}</th>
+                <th className="align-right">{t("reports.planned")}</th>
+                <th className="align-right">{t("reports.spent")}</th>
+                <th className="align-right">{t("reports.remaining")}</th>
+                <th className="align-right">{t("reports.used")}</th>
               </tr>
             </thead>
             <tbody>
               {summary.categories.map((c) => (
                 <tr key={c.id}>
                   <td>
-                    <strong>{c.name}</strong>
+                    <strong>{ts(c.name)}</strong>
                   </td>
                   <td className="align-right">
-                    {c.limit_kzt === null ? "No limit" : money(c.limit_kzt)}
+                    {c.limit_kzt === null
+                      ? t("budget.noLimit")
+                      : money(c.limit_kzt)}
                   </td>
                   <td className="align-right">{money(c.spent_kzt)}</td>
                   <td
@@ -154,7 +150,7 @@ export default function Reports({ summary }: { summary: Summary }) {
             </tbody>
             <tfoot>
               <tr>
-                <td>Household total</td>
+                <td>{t("stat.householdTotal")}</td>
                 <td className="align-right">{money(summary.planned_kzt)}</td>
                 <td className="align-right">{money(summary.spent_kzt)}</td>
                 <td className="align-right">{money(summary.remaining_kzt)}</td>

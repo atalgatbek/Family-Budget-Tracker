@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
+import { useI18n } from "./i18n";
 
 export type Theme = "light" | "dark";
 
@@ -41,17 +42,17 @@ export function useTheme() {
   return { theme, toggle };
 }
 
-export function ThemeToggle({ floating = false }: { floating?: boolean }) {
+export function ThemeToggle() {
   const { theme, toggle } = useTheme();
-  const label =
-    theme === "dark" ? "Switch to light mode" : "Switch to dark mode";
+  const { t } = useI18n();
+  const label = t(theme === "dark" ? "theme.toLight" : "theme.toDark");
   return (
     <button
       type="button"
-      className={`theme-toggle ${floating ? "floating" : ""}`}
+      className="theme-toggle"
       role="switch"
       aria-checked={theme === "dark"}
-      aria-label="Dark mode"
+      aria-label={t("theme.label")}
       title={label}
       onClick={toggle}
     >

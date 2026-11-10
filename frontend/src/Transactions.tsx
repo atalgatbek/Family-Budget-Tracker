@@ -11,6 +11,7 @@ import {
 import { api, dateLabel, messageOf, money } from "./api";
 import { Empty, ErrorNotice, Loading } from "./components";
 import { ExpenseTable } from "./Overview";
+import { useI18n } from "./i18n";
 import type { Action } from "./ActionModal";
 import type { ExpensePage, Family, Workspace } from "./types";
 
@@ -52,6 +53,7 @@ export default function Transactions({
   data: Workspace;
   onAction: (action: Action) => void;
 }) {
+  const { t, ts } = useI18n();
   const [tab, setTab] = useState<"expenses" | "income">("expenses");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
@@ -102,7 +104,7 @@ export default function Transactions({
     try {
       if (tab === "income")
         downloadCsv(`income-${month}.csv`, [
-          ["Date", "Source", "Member", "Amount KZT"],
+          [t("csv.date"), t("csv.source"), t("csv.member"), t("csv.amount")],
           ...data.income.map((row) => [
             row.income_date,
             row.source,
@@ -128,21 +130,21 @@ export default function Transactions({
         } while (rows.length < total);
         downloadCsv(`expenses-${month}.csv`, [
           [
-            "Reference",
-            "Date",
-            "Description",
-            "Category",
-            "Member",
-            "Status",
-            "Amount KZT",
+            t("csv.reference"),
+            t("csv.date"),
+            t("csv.description"),
+            t("csv.category"),
+            t("csv.member"),
+            t("csv.status"),
+            t("csv.amount"),
           ],
           ...rows.map((row) => [
             row.reference,
             row.expense_date,
             row.note,
-            row.category_name,
+            ts(row.category_name),
             row.user_name,
-            row.status,
+            ts(row.status),
             row.amount_kzt,
           ]),
         ]);
@@ -161,13 +163,13 @@ export default function Transactions({
             className={tab === "expenses" ? "active" : ""}
             onClick={() => setTab("expenses")}
           >
-            Expenses <span>{result?.total ?? "—"}</span>
+            {t("tx.expenses")} <span>{result?.total ?? "—"}</span>
           </button>
           <button
             className={tab === "income" ? "active" : ""}
             onClick={() => setTab("income")}
           >
-            Income <span>{data.income.length}</span>
+            {t("tx.income")} <span>{data.income.length}</span>
           </button>
         </div>
         <button
@@ -176,22 +178,19 @@ export default function Transactions({
           disabled={exporting}
         >
           <Download size={15} />
-          {exporting ? "Exporting…" : "Export CSV"}
+          {t(exporting ? "tx.exporting" : "tx.export")}
         </button>
       </div>
       {family.role === "Member" && (
-        <p className="access-note">
-          You can see and manage your own transactions. The overview includes
-          your whole household’s totals.
-        </p>
+        <p className="access-note">{t("tx.accessNote")}</p>
       )}
       {tab === "expenses" && (
         <div className="filters">
           <label className="search-field">
             <Search size={17} />
             <input
-              aria-label="Search expenses"
-              placeholder="Search your expenses…"
+              aria-label={t("tx.searchAria")}
+              placeholder={t("tx.searchPh")}
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -200,36 +199,36 @@ export default function Transactions({
             />
           </label>
           <select
-            aria-label="Filter by category"
+            aria-label={t("tx.filterCategory")}
             value={category}
             onChange={(e) => {
               setCategory(e.target.value);
               setPage(1);
             }}
           >
-            <option value="">All categories</option>
+            <option value="">{t("tx.allCategories")}</option>
             {data.categories.map((item) => (
               <option key={item.id} value={item.id}>
-                {item.name}
+                {ts(item.name)}
               </option>
             ))}
           </select>
           <select
-            aria-label="Filter by status"
+            aria-label={t("tx.filterStatus")}
             value={status}
             onChange={(e) => {
               setStatus(e.target.value);
               setPage(1);
             }}
           >
-            <option value="">All statuses</option>
-            <option>Saved</option>
-            <option>Needs review</option>
+            <option value="">{t("tx.allStatuses")}</option>
+            <option value="Saved">{ts("Saved")}</option>
+            <option value="Needs review">{ts("Needs review")}</option>
           </select>
           {(search || category || status) && (
             <button
               className="icon-button"
-              aria-label="Clear filters"
+              aria-label={t("tx.clear")}
               onClick={() => {
                 setSearch("");
                 setCategory("");
@@ -258,23 +257,26 @@ export default function Transactions({
             />
             <div className="pagination">
               <span>
-                {(page - 1) * 15 + 1}–{Math.min(page * 15, result.total)} of{" "}
-                {result.total} expenses
+                {t("tx.range", {
+                  from: (page - 1) * 15 + 1,
+                  to: Math.min(page * 15, result.total),
+                  total: result.total,
+                })}
               </span>
               <div>
                 <button
                   className="icon-button"
                   disabled={page === 1}
-                  aria-label="Previous page"
+                  aria-label={t("tx.prevPage")}
                   onClick={() => setPage(page - 1)}
                 >
                   <ChevronLeft size={18} />
                 </button>
-                <span>Page {page}</span>
+                <span>{t("tx.page", { page })}</span>
                 <button
                   className="icon-button"
                   disabled={page * 15 >= result.total}
-                  aria-label="Next page"
+                  aria-label={t("tx.nextPage")}
                   onClick={() => setPage(page + 1)}
                 >
                   <ChevronRight size={18} />
@@ -284,21 +286,17 @@ export default function Transactions({
           </>
         ) : (
           <Empty
-            title={
-              search || category || status
-                ? "Nothing matches just yet"
-                : "No expenses this month"
-            }
+            title={t(search || category || status ? "tx.noMatch" : "tx.none")}
             action={
               <button
                 className="button secondary"
                 onClick={() => onAction({ kind: "expense" })}
               >
-                <Plus size={16} /> Add expense
+                <Plus size={16} /> {t("action.addExpense")}
               </button>
             }
           >
-            Try another filter, or add your first expense.
+            {t("tx.emptyText")}
           </Empty>
         )
       ) : data.income.length ? (
@@ -321,24 +319,24 @@ export default function Transactions({
                 className="text-button danger-text"
                 onClick={() => onAction({ kind: "delete-income", income: row })}
               >
-                Delete
+                {t("common.delete")}
               </button>
             </div>
           ))}
         </div>
       ) : (
         <Empty
-          title="A place for what comes in"
+          title={t("tx.incomeEmptyTitle")}
           action={
             <button
               className="button secondary"
               onClick={() => onAction({ kind: "income" })}
             >
-              <Plus size={16} /> Add income
+              <Plus size={16} /> {t("action.addIncome")}
             </button>
           }
         >
-          Track salaries, freelance work, and other household income here.
+          {t("tx.incomeEmptyText")}
         </Empty>
       )}
     </section>

@@ -7,7 +7,8 @@ import {
   TrendingUp,
   Wallet,
 } from "lucide-react";
-import { dateLabel, initials, money, monthName, number } from "./api";
+import { dateLabel, initials, money, monthOnly, number } from "./api";
+import { useI18n } from "./i18n";
 import { BudgetRow, CategoryIcon, Empty } from "./components";
 import { SpendingChart } from "./Charts";
 import StatusPanel from "./Status";
@@ -27,19 +28,20 @@ export function ExpenseTable({
   compact?: boolean;
   onDelete?: (expense: Expense) => void;
 }) {
+  const { t, ts } = useI18n();
   return (
     <div className="table-scroll">
       <table className="expense-table">
         <thead>
           <tr>
-            <th>Transaction</th>
-            <th>Category</th>
-            {!compact && <th>Added by</th>}
-            <th>Date</th>
-            <th className="align-right">Amount</th>
+            <th>{t("table.transaction")}</th>
+            <th>{t("table.category")}</th>
+            {!compact && <th>{t("table.addedBy")}</th>}
+            <th>{t("table.date")}</th>
+            <th className="align-right">{t("table.amount")}</th>
             {!compact && (
               <th>
-                <span className="sr-only">Actions</span>
+                <span className="sr-only">{t("table.actions")}</span>
               </th>
             )}
           </tr>
@@ -54,18 +56,23 @@ export function ExpenseTable({
                 >
                   <CategoryIcon name={expense.category_name} small />
                   <span>
-                    <strong>{expense.note || expense.category_name}</strong>
+                    <strong>{expense.note || ts(expense.category_name)}</strong>
                     <small>
                       {expense.reference}
                       {expense.status === "Needs review" && (
-                        <span className="review-dot"> · Needs review</span>
+                        <span className="review-dot">
+                          {" "}
+                          · {ts("Needs review")}
+                        </span>
                       )}
                     </small>
                   </span>
                 </button>
               </td>
               <td>
-                <span className="category-pill">{expense.category_name}</span>
+                <span className="category-pill">
+                  {ts(expense.category_name)}
+                </span>
               </td>
               {!compact && (
                 <td>
@@ -93,22 +100,24 @@ export function ExpenseTable({
                         target="_blank"
                         rel="noreferrer"
                       >
-                        Receipt
+                        {t("table.receipt")}
                       </a>
                     )}
                     <button
                       className="text-button"
                       onClick={() => onEdit(expense)}
                     >
-                      Edit
+                      {t("common.edit")}
                     </button>
                     {onDelete && (
                       <button
                         className="text-button danger-text"
-                        aria-label={`Delete ${expense.note || expense.reference}`}
+                        aria-label={t("table.deleteAria", {
+                          name: expense.note || expense.reference,
+                        })}
                         onClick={() => onDelete(expense)}
                       >
-                        Delete
+                        {t("common.delete")}
                       </button>
                     )}
                   </div>
@@ -135,6 +144,7 @@ export default function Overview({
   onAction: (action: Action) => void;
   navigate: (view: string) => void;
 }) {
+  const { t, ts } = useI18n();
   const { summary } = data;
   const percentage = summary.planned_kzt
     ? Math.round((summary.spent_kzt / summary.planned_kzt) * 100)
@@ -144,10 +154,10 @@ export default function Overview({
     .sort((a, b) => (b.used_percent ?? 0) - (a.used_percent ?? 0))[0];
   return (
     <>
-      <section className="stats-grid" aria-label="Monthly totals">
+      <section className="stats-grid" aria-label={t("stat.aria")}>
         <div className="stat-card balance-card">
           <div className="stat-label">
-            <span>Left in the monthly plan</span>
+            <span>{t("stat.left")}</span>
             <Wallet size={18} />
           </div>
           <div className="stat-value">
@@ -158,13 +168,15 @@ export default function Overview({
             <div style={{ width: `${Math.min(percentage, 100)}%` }} />
           </div>
           <div className="stat-foot">
-            <span>{percentage}% of budget used</span>
-            <span>{money(summary.planned_kzt)} planned</span>
+            <span>{t("stat.used", { percent: percentage })}</span>
+            <span>
+              {t("stat.planned", { amount: money(summary.planned_kzt) })}
+            </span>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-label">
-            <span>Total spent</span>
+            <span>{t("stat.spent")}</span>
             <span className="stat-icon expense">
               <ArrowUpRight size={18} />
             </span>
@@ -174,12 +186,12 @@ export default function Overview({
             <span>₸</span>
           </div>
           <div className="stat-foot">
-            <span>Saved expenses this month</span>
+            <span>{t("stat.spentFoot")}</span>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-label">
-            <span>Total income</span>
+            <span>{t("stat.income")}</span>
             <span className="stat-icon income">
               <ArrowDownLeft size={18} />
             </span>
@@ -193,9 +205,9 @@ export default function Overview({
               className="text-button"
               onClick={() => onAction({ kind: "income" })}
             >
-              Add income <Plus size={13} />
+              {t("action.addIncome")} <Plus size={13} />
             </button>
-            <span>Household total</span>
+            <span>{t("stat.householdTotal")}</span>
           </div>
         </div>
       </section>
@@ -205,46 +217,45 @@ export default function Overview({
           <section className="panel spending-panel">
             <div className="panel-heading">
               <div>
-                <h2>The month, at a glance</h2>
-                <p>Small purchases. The bigger picture.</p>
+                <h2>{t("chart.title")}</h2>
+                <p>{t("chart.sub")}</p>
               </div>
               <span className="quiet-badge">
-                <TrendingUp size={13} /> Cumulative spending
+                <TrendingUp size={13} /> {t("chart.cumulative")}
               </span>
             </div>
             <div className="chart-legend">
               <span>
-                <i className="legend-spent" /> Spending
+                <i className="legend-spent" /> {t("chart.spending")}
               </span>
               <span>
-                <i className="legend-budget" /> Budget pace
+                <i className="legend-budget" /> {t("chart.pace")}
               </span>
               <small>KZT</small>
             </div>
             <SpendingChart summary={summary} />
             <div className="chart-note">
               <CircleHelp size={14} />
-              <span>
-                The dotted line spreads your monthly plan evenly across{" "}
-                {monthName(month).split(" ")[0]}.
-              </span>
+              <span>{t("chart.note", { month: monthOnly(month) })}</span>
             </div>
           </section>
           <section className="panel recent-panel">
             <div className="panel-heading">
               <div>
-                <h2>Recent transactions</h2>
+                <h2>{t("recent.title")}</h2>
                 <p>
-                  {family.role === "Admin"
-                    ? "The everyday things your household spends on."
-                    : "Your latest expenses. Household totals include everyone."}
+                  {t(
+                    family.role === "Admin"
+                      ? "recent.subAdmin"
+                      : "recent.subMember",
+                  )}
                 </p>
               </div>
               <button
                 className="text-button"
                 onClick={() => navigate("transactions")}
               >
-                View all <ArrowRight size={15} />
+                {t("common.viewAll")} <ArrowRight size={15} />
               </button>
             </div>
             {data.recent.items.length ? (
@@ -256,17 +267,17 @@ export default function Overview({
               />
             ) : (
               <Empty
-                title="A fresh page for this month"
+                title={t("recent.emptyTitle")}
                 action={
                   <button
                     className="button secondary"
                     onClick={() => onAction({ kind: "expense" })}
                   >
-                    <Plus size={16} /> Add an expense
+                    <Plus size={16} /> {t("action.addAnExpense")}
                   </button>
                 }
               >
-                Your purchases will show up here as you add them.
+                {t("recent.emptyText")}
               </Empty>
             )}
           </section>
@@ -275,8 +286,8 @@ export default function Overview({
           <section className="panel budget-panel">
             <div className="panel-heading">
               <div>
-                <h2>A plan for every little thing</h2>
-                <p>Your category budgets</p>
+                <h2>{t("plan.title")}</h2>
+                <p>{t("plan.sub")}</p>
               </div>
             </div>
             <div className="budget-rows">
@@ -287,40 +298,50 @@ export default function Overview({
                 ))}
             </div>
             {!summary.categories.some((item) => item.limit_kzt) && (
-              <Empty title="Give your money a plan">
-                {family.role === "Admin"
-                  ? "Set your first category limit in Budgets."
-                  : "Your household admin can set monthly limits."}
+              <Empty title={t("plan.emptyTitle")}>
+                {t(
+                  family.role === "Admin"
+                    ? "plan.emptyAdmin"
+                    : "plan.emptyMember",
+                )}
               </Empty>
             )}
             <button
               className="panel-bottom-link"
               onClick={() => navigate("budgets")}
             >
-              {family.role === "Admin"
-                ? "Manage monthly budgets"
-                : "See monthly budgets"}
+              {t(family.role === "Admin" ? "plan.manage" : "plan.see")}
               <ArrowRight size={16} />
             </button>
           </section>
           <section className="little-note">
-            <span className="note-eyebrow">A LITTLE HEADS-UP</span>
+            <span className="note-eyebrow">{t("heads.eyebrow")}</span>
             <h3>
               {alertCategory
-                ? `${alertCategory.name} is ${alertCategory.used_percent! >= 100 ? "over its limit" : "getting close"}.`
-                : "A little awareness goes a long way."}
+                ? t(
+                    alertCategory.used_percent! >= 100
+                      ? "heads.over"
+                      : "heads.close",
+                    { name: ts(alertCategory.name) },
+                  )
+                : t("heads.none")}
             </h3>
             <p>
               {alertCategory
-                ? `${money(Math.abs(alertCategory.left_kzt!))} ${alertCategory.left_kzt! < 0 ? "over the plan" : "left for the month"}. A small adjustment now can give your household some breathing room.`
-                : "Check in on your spending together. A shared plan is easier to keep."}
+                ? t(
+                    alertCategory.left_kzt! < 0
+                      ? "heads.textOver"
+                      : "heads.textLeft",
+                    { amount: money(Math.abs(alertCategory.left_kzt!)) },
+                  )
+                : t("heads.textNone")}
             </p>
             {alertCategory && family.role === "Admin" && (
               <button
                 className="text-button"
                 onClick={() => onAction({ kind: "transfer" })}
               >
-                Make a little room <ArrowRight size={14} />
+                {t("heads.action")} <ArrowRight size={14} />
               </button>
             )}
           </section>
