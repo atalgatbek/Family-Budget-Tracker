@@ -25,6 +25,7 @@ import Budgets from "./Budgets";
 import Reports from "./Reports";
 import Household from "./Household";
 import { ThemeToggle } from "./theme";
+import { LanguageSwitch, useI18n, type Key } from "./i18n";
 import type {
   Category,
   ExpensePage,
@@ -36,11 +37,11 @@ import type {
 } from "./types";
 
 const navigation = [
-  { id: "overview", title: "Overview", icon: LayoutGrid },
-  { id: "transactions", title: "Transactions", icon: ArrowRightLeft },
-  { id: "budgets", title: "Budgets", icon: SlidersHorizontal },
-  { id: "reports", title: "Reports", icon: BarChart3 },
-  { id: "household", title: "Household", icon: Users },
+  { id: "overview", icon: LayoutGrid },
+  { id: "transactions", icon: ArrowRightLeft },
+  { id: "budgets", icon: SlidersHorizontal },
+  { id: "reports", icon: BarChart3 },
+  { id: "household", icon: Users },
 ];
 const getView = () =>
   navigation.some((item) => item.id === location.hash.slice(1))
@@ -48,6 +49,7 @@ const getView = () =>
     : "overview";
 
 export default function App() {
+  const { t } = useI18n();
   const [session, setSession] = useState<Session | null>(null);
   const [booting, setBooting] = useState(true);
   const [bootError, setBootError] = useState("");
@@ -175,11 +177,8 @@ export default function App() {
       <div className="boot-screen">
         <div className="connection-error">
           <House size={32} />
-          <h1>Let’s get connected.</h1>
-          <p>
-            We couldn’t reach your household. Check the connection and try
-            again.
-          </p>
+          <h1>{t("boot.title")}</h1>
+          <p>{t("boot.text")}</p>
           <ErrorNotice message={bootError} retry={boot} />
         </div>
       </div>
@@ -188,41 +187,20 @@ export default function App() {
   if (!family)
     return (
       <div className="boot-screen">
-        <ErrorNotice message="No household is available for this account." />
+        <ErrorNotice message={t("app.noHousehold")} />
         <button className="button secondary" onClick={logout}>
-          Sign out
+          {t("app.signOut")}
         </button>
       </div>
     );
-  const titles: Record<string, { heading: string; subheading: string }> = {
-    overview: {
-      heading: `A little more in balance.`,
-      subheading: `Here’s how ${family.name} is doing this month.`,
-    },
-    transactions: {
-      heading: "The everyday, accounted for.",
-      subheading: "A home for every purchase and every payday.",
-    },
-    budgets: {
-      heading: "A plan you can live with.",
-      subheading: "Give your money a purpose. Leave a little room for life.",
-    },
-    reports: {
-      heading: "See the bigger picture.",
-      subheading: "Your month in numbers, with room to reflect.",
-    },
-    household: {
-      heading: "Better, together.",
-      subheading:
-        "The people, categories, and little details of your shared budget.",
-    },
-  };
+  const viewTitle = t(`nav.${view}` as Key);
+  const firstName = session.user.full_name.split(" ")[0];
   return (
     <div className="app-shell">
       {mobileMenu && (
         <button
           className="sidebar-backdrop"
-          aria-label="Close navigation"
+          aria-label={t("app.closeNav")}
           onClick={() => setMobileMenu(false)}
         />
       )}
@@ -233,7 +211,7 @@ export default function App() {
           </span>
           <span>
             family<span className="brand-light">budget</span>
-            <small>A LITTLE MORE IN BALANCE</small>
+            <small>{t("brand.tagline")}</small>
           </span>
         </a>
         <div className="household-switcher">
@@ -241,9 +219,9 @@ export default function App() {
             <House size={17} />
           </div>
           <div>
-            <small>YOUR HOUSEHOLD</small>
+            <small>{t("app.yourHouseholdCaps")}</small>
             <select
-              aria-label="Switch household"
+              aria-label={t("app.switchHousehold")}
               value={familyId ?? ""}
               onChange={(e) => {
                 const selected = session.families.find(
@@ -264,9 +242,9 @@ export default function App() {
           </div>
           <ChevronDown size={15} />
         </div>
-        <span className="nav-label">YOUR MONEY, TOGETHER</span>
-        <nav aria-label="Main navigation">
-          {navigation.map(({ id, title, icon: Icon }) => (
+        <span className="nav-label">{t("app.navLabel")}</span>
+        <nav aria-label={t("app.mainNav")}>
+          {navigation.map(({ id, icon: Icon }) => (
             <a
               key={id}
               href={`#${id}`}
@@ -275,12 +253,9 @@ export default function App() {
               onClick={() => navigate(id)}
             >
               <Icon size={19} strokeWidth={1.7} />
-              <span>{title}</span>
+              <span>{t(`nav.${id}` as Key)}</span>
               {id === "transactions" && workspace?.summary.review_count ? (
-                <span
-                  className="nav-count"
-                  title="Household entries needing review"
-                >
+                <span className="nav-count" title={t("app.reviewTitle")}>
                   {workspace.summary.review_count}
                 </span>
               ) : null}
@@ -293,30 +268,30 @@ export default function App() {
               ↗
             </span>
             <strong>
-              Little steps.
+              {t("app.noteTitle1")}
               <br />
-              Shared progress.
+              {t("app.noteTitle2")}
             </strong>
             <p>
-              A good plan starts with
+              {t("app.noteText1")}
               <br />
-              being on the same page.
+              {t("app.noteText2")}
             </p>
           </div>
           <div className="user-block">
             <span className="avatar">{initials(session.user.full_name)}</span>
             <div>
-              <strong>{session.user.full_name.split(" ")[0]}</strong>
+              <strong>{firstName}</strong>
               <small>
-                {family.role === "Admin"
-                  ? "Household admin"
-                  : "Household member"}
+                {t(
+                  family.role === "Admin" ? "app.roleAdmin" : "app.roleMember",
+                )}
               </small>
             </div>
             <button
               className="icon-button"
-              aria-label="Sign out"
-              title="Sign out"
+              aria-label={t("app.signOut")}
+              title={t("app.signOut")}
               onClick={logout}
             >
               <LogOut size={17} />
@@ -329,20 +304,18 @@ export default function App() {
           <div className="breadcrumbs">
             <button
               className="icon-button mobile-toggle"
-              aria-label="Open navigation"
+              aria-label={t("app.openNav")}
               onClick={() => setMobileMenu(true)}
             >
               <Menu size={20} />
             </button>
-            <span>Your household</span>
+            <span>{t("app.breadcrumb")}</span>
             <span className="breadcrumb-slash">/</span>
-            <strong>
-              {navigation.find((item) => item.id === view)?.title}
-            </strong>
+            <strong>{viewTitle}</strong>
           </div>
           <div className="topbar-right">
             <span className="privacy-label">
-              <ShieldCheck size={14} /> Just your family
+              <ShieldCheck size={14} /> {t("app.privacy")}
             </span>
             <div className="avatar-stack">
               {workspace?.members.slice(0, 3).map((member) => (
@@ -355,10 +328,11 @@ export default function App() {
                 </span>
               ))}
             </div>
+            <LanguageSwitch />
             <ThemeToggle />
             <button
               className="icon-button refresh-button"
-              aria-label="Refresh household data"
+              aria-label={t("app.refresh")}
               onClick={() => setRevision((value) => value + 1)}
             >
               <RefreshCw size={16} />
@@ -370,13 +344,11 @@ export default function App() {
             <div>
               <span className="eyebrow">
                 {view === "overview"
-                  ? `HELLO, ${session.user.full_name.split(" ")[0].toUpperCase()}`
-                  : navigation
-                      .find((item) => item.id === view)
-                      ?.title.toUpperCase()}
+                  ? t("app.hello", { name: firstName.toUpperCase() })
+                  : viewTitle.toUpperCase()}
               </span>
-              <h1>{titles[view].heading}</h1>
-              <p>{titles[view].subheading}</p>
+              <h1>{t(`title.${view}` as Key)}</h1>
+              <p>{t(`title.${view}Sub` as Key, { family: family.name })}</p>
             </div>
             <div className="heading-actions">
               {view !== "household" && (
@@ -394,7 +366,7 @@ export default function App() {
                   onClick={() => setAction({ kind: "expense" })}
                   disabled={!workspace}
                 >
-                  <Plus size={18} /> Add expense
+                  <Plus size={18} /> {t("action.addExpense")}
                 </button>
               )}
             </div>
@@ -452,13 +424,10 @@ export default function App() {
             !error && <Loading />
           )}
           <footer className="page-footer">
-            <span>A little clarity for the life you share.</span>
+            <span>{t("app.footerLeft")}</span>
             <span>
               <span className="connection-dot" />
-              {error
-                ? "Connection needs attention"
-                : "Shared with your household"}{" "}
-              · KZT
+              {t(error ? "app.footerAttention" : "app.footerShared")} · KZT
             </span>
           </footer>
         </main>
@@ -479,7 +448,7 @@ export default function App() {
           <span>{toast}</span>
           <button
             className="icon-button"
-            aria-label="Dismiss notification"
+            aria-label={t("app.dismiss")}
             onClick={() => setToast("")}
           >
             <X size={16} />

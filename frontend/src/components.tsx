@@ -17,6 +17,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { money, monthName } from "./api";
+import { useI18n } from "./i18n";
 import { StatusPill, categoryLevel } from "./Status";
 import type { BudgetCategory } from "./types";
 
@@ -24,31 +25,32 @@ export const categoryStyle = (
   name: string,
 ): { icon: LucideIcon; color: string; background: string } => {
   const key = name.toLowerCase();
-  if (key.includes("food") || key.includes("grocer"))
+  const has = (...parts: string[]) => parts.some((part) => key.includes(part));
+  if (has("food", "grocer", "еда", "продукт", "тамақ", "азық"))
     return {
       icon: ShoppingBasket,
       color: "var(--cat-food)",
       background: "var(--cat-food-bg)",
     };
-  if (key.includes("transport"))
+  if (has("transport", "транспорт", "көлік"))
     return {
       icon: BusFront,
       color: "var(--cat-transport)",
       background: "var(--cat-transport-bg)",
     };
-  if (key.includes("utilit"))
+  if (has("utilit", "коммун"))
     return {
       icon: Zap,
       color: "var(--cat-utilities)",
       background: "var(--cat-utilities-bg)",
     };
-  if (key.includes("child") || key.includes("kid"))
+  if (has("child", "kid", "дет", "бала"))
     return {
       icon: Baby,
       color: "var(--cat-children)",
       background: "var(--cat-children-bg)",
     };
-  if (key.includes("entertain"))
+  if (has("entertain", "развлеч", "ойын"))
     return {
       icon: Clapperboard,
       color: "var(--cat-fun)",
@@ -86,13 +88,14 @@ export function ErrorNotice({
   message: string;
   retry?: () => void;
 }) {
+  const { t, ts } = useI18n();
   return (
     <div className="error-notice" role="alert">
       <AlertCircle size={18} />
-      <span>{message}</span>
+      <span>{ts(message)}</span>
       {retry && (
         <button className="text-button" onClick={retry}>
-          Try again
+          {t("common.tryAgain")}
         </button>
       )}
     </div>
@@ -121,10 +124,11 @@ export function Empty({
 }
 
 export function Loading() {
+  const { t } = useI18n();
   return (
     <div className="loading" role="status">
       <LoaderCircle className="spin" size={22} />
-      <span>Getting everything in order…</span>
+      <span>{t("common.loading")}</span>
     </div>
   );
 }
@@ -136,6 +140,7 @@ export function MonthPicker({
   month: string;
   onChange: (value: string) => void;
 }) {
+  const { t } = useI18n();
   function move(step: number) {
     const date = new Date(`${month}-01T12:00:00`);
     date.setMonth(date.getMonth() + step);
@@ -147,7 +152,7 @@ export function MonthPicker({
     <div className="month-picker">
       <button
         className="icon-button"
-        aria-label="Previous month"
+        aria-label={t("month.prev")}
         onClick={() => move(-1)}
       >
         <ChevronLeft size={17} />
@@ -156,7 +161,7 @@ export function MonthPicker({
         <span>{monthName(month)}</span>
         <input
           type="month"
-          aria-label="Budget month"
+          aria-label={t("month.label")}
           value={month}
           min="1900-01"
           max="9998-12"
@@ -165,7 +170,7 @@ export function MonthPicker({
       </label>
       <button
         className="icon-button"
-        aria-label="Next month"
+        aria-label={t("month.next")}
         onClick={() => move(1)}
       >
         <ChevronRight size={17} />
@@ -187,6 +192,7 @@ export function Modal({
   onClose: () => void;
   busy?: boolean;
 }) {
+  const { t } = useI18n();
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const dialog = ref.current;
@@ -215,7 +221,7 @@ export function Modal({
           <button
             type="button"
             className="icon-button"
-            aria-label="Close dialog"
+            aria-label={t("modal.close")}
             disabled={busy}
             onClick={onClose}
           >
@@ -230,15 +236,16 @@ export function Modal({
 
 export function SubmitButton({
   busy,
-  children = "Save changes",
+  children,
 }: {
   busy: boolean;
   children?: ReactNode;
 }) {
+  const { t } = useI18n();
   return (
     <button className="button primary" type="submit" disabled={busy}>
       {busy ? <LoaderCircle className="spin" size={17} /> : <Check size={17} />}
-      {busy ? "Saving…" : children}
+      {busy ? t("common.saving") : (children ?? t("common.saveChanges"))}
     </button>
   );
 }
@@ -250,6 +257,7 @@ export function BudgetRow({
   category: BudgetCategory;
   onClick?: () => void;
 }) {
+  const { t, ts } = useI18n();
   const { color } = categoryStyle(category.name);
   const warning = (category.used_percent ?? 0) >= 85;
   const level = categoryLevel(category);
@@ -260,13 +268,15 @@ export function BudgetRow({
           <CategoryIcon name={category.name} />
           <div>
             <strong>
-              {category.name}
+              {ts(category.name)}
               {level && level !== "good" && <StatusPill level={level} />}
             </strong>
             <span>
               {money(category.spent_kzt)}{" "}
               <span className="muted">
-                of {category.limit_kzt ? money(category.limit_kzt) : "no limit"}
+                {category.limit_kzt
+                  ? t("budget.ofLimit", { limit: money(category.limit_kzt) })
+                  : t("budget.ofNoLimit")}
               </span>
             </span>
           </div>
@@ -274,13 +284,15 @@ export function BudgetRow({
         <div className={`budget-left ${warning ? "warning-text" : ""}`}>
           <strong>
             {category.left_kzt === null
-              ? "No limit"
+              ? t("budget.noLimit")
               : money(Math.abs(category.left_kzt))}
           </strong>
           <span>
-            {category.left_kzt !== null && category.left_kzt < 0
-              ? "over budget"
-              : "left to spend"}
+            {t(
+              category.left_kzt !== null && category.left_kzt < 0
+                ? "budget.over"
+                : "budget.left",
+            )}
           </span>
         </div>
       </div>
@@ -299,7 +311,7 @@ export function BudgetRow({
       </div>
       {onClick && (
         <button className="text-button budget-edit" onClick={onClick}>
-          Adjust limit <ArrowRight size={14} />
+          {t("budget.adjust")} <ArrowRight size={14} />
         </button>
       )}
     </div>
