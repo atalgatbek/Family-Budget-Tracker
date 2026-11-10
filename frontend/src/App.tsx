@@ -24,6 +24,7 @@ import Transactions from "./Transactions";
 import Budgets from "./Budgets";
 import Reports from "./Reports";
 import Household from "./Household";
+import { ThemeToggle } from "./theme";
 import type {
   Category,
   ExpensePage,
@@ -354,6 +355,7 @@ export default function App() {
                 </span>
               ))}
             </div>
+            <ThemeToggle />
             <button
               className="icon-button refresh-button"
               aria-label="Refresh household data"

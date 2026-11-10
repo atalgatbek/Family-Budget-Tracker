@@ -10,6 +10,7 @@ import {
 import { dateLabel, initials, money, monthName, number } from "./api";
 import { BudgetRow, CategoryIcon, Empty } from "./components";
 import { SpendingChart } from "./Charts";
+import StatusPanel from "./Status";
 import type { Action } from "./ActionModal";
 import type { Expense, Family, Workspace } from "./types";
 
@@ -198,6 +199,7 @@ export default function Overview({
           </div>
         </div>
       </section>
+      <StatusPanel summary={summary} month={month} navigate={navigate} />
       <div className="overview-grid">
         <div className="overview-main">
           <section className="panel spending-panel">

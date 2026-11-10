@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { api, messageOf } from "./api";
 import { ErrorNotice } from "./components";
+import { ThemeToggle } from "./theme";
 import type { Session } from "./types";
 
 export default function AuthPage({
@@ -41,6 +42,7 @@ export default function AuthPage({
   }
   return (
     <main className="auth-layout">
+      <ThemeToggle floating />
       <section className="auth-story">
         <a className="brand" href="#">
           <span className="brand-mark">

@@ -17,6 +17,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { money, monthName } from "./api";
+import { StatusPill, categoryLevel } from "./Status";
 import type { BudgetCategory } from "./types";
 
 export const categoryStyle = (
@@ -24,16 +25,40 @@ export const categoryStyle = (
 ): { icon: LucideIcon; color: string; background: string } => {
   const key = name.toLowerCase();
   if (key.includes("food") || key.includes("grocer"))
-    return { icon: ShoppingBasket, color: "#59744a", background: "#eef1e7" };
+    return {
+      icon: ShoppingBasket,
+      color: "var(--cat-food)",
+      background: "var(--cat-food-bg)",
+    };
   if (key.includes("transport"))
-    return { icon: BusFront, color: "#b38443", background: "#f7efe1" };
+    return {
+      icon: BusFront,
+      color: "var(--cat-transport)",
+      background: "var(--cat-transport-bg)",
+    };
   if (key.includes("utilit"))
-    return { icon: Zap, color: "#7b7eab", background: "#eeeeF7" };
+    return {
+      icon: Zap,
+      color: "var(--cat-utilities)",
+      background: "var(--cat-utilities-bg)",
+    };
   if (key.includes("child") || key.includes("kid"))
-    return { icon: Baby, color: "#b37769", background: "#f8eee9" };
+    return {
+      icon: Baby,
+      color: "var(--cat-children)",
+      background: "var(--cat-children-bg)",
+    };
   if (key.includes("entertain"))
-    return { icon: Clapperboard, color: "#5e8c8b", background: "#eaf2f1" };
-  return { icon: Home, color: "#788274", background: "#edf0eb" };
+    return {
+      icon: Clapperboard,
+      color: "var(--cat-fun)",
+      background: "var(--cat-fun-bg)",
+    };
+  return {
+    icon: Home,
+    color: "var(--cat-other)",
+    background: "var(--cat-other-bg)",
+  };
 };
 
 export function CategoryIcon({
@@ -227,13 +252,17 @@ export function BudgetRow({
 }) {
   const { color } = categoryStyle(category.name);
   const warning = (category.used_percent ?? 0) >= 85;
+  const level = categoryLevel(category);
   return (
     <div className="budget-row">
       <div className="budget-row-top">
         <div className="category-name">
           <CategoryIcon name={category.name} />
           <div>
-            <strong>{category.name}</strong>
+            <strong>
+              {category.name}
+              {level && level !== "good" && <StatusPill level={level} />}
+            </strong>
             <span>
               {money(category.spent_kzt)}{" "}
               <span className="muted">
@@ -259,7 +288,12 @@ export function BudgetRow({
         <div
           style={{
             width: `${Math.min(category.used_percent || 0, 100)}%`,
-            background: warning ? "#c2964d" : color,
+            background:
+              level === "critical"
+                ? "var(--status-critical)"
+                : warning
+                  ? "var(--status-warning)"
+                  : color,
           }}
         />
       </div>
