@@ -42,13 +42,21 @@ export function SpendingChart({ summary }: { summary: Summary }) {
         >
           <defs>
             <linearGradient id="spend-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#719480" stopOpacity={0.25} />
-              <stop offset="100%" stopColor="#719480" stopOpacity={0.01} />
+              <stop
+                offset="0%"
+                stopColor="var(--chart-fill)"
+                stopOpacity={0.25}
+              />
+              <stop
+                offset="100%"
+                stopColor="var(--chart-fill)"
+                stopOpacity={0.01}
+              />
             </linearGradient>
           </defs>
           <CartesianGrid
             vertical={false}
-            stroke="#eceee8"
+            stroke="var(--chart-grid)"
             strokeDasharray="3 5"
           />
           <XAxis
@@ -56,14 +64,14 @@ export function SpendingChart({ summary }: { summary: Summary }) {
             ticks={[1, 5, 10, 15, 20, 25, days]}
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 11, fill: "#8a8d83" }}
+            tick={{ fontSize: 11, fill: "var(--chart-tick)" }}
             tickFormatter={(v) => `${String(v).padStart(2, "0")}`}
             dy={9}
           />
           <YAxis
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 10, fill: "#8a8d83" }}
+            tick={{ fontSize: 10, fill: "var(--chart-tick)" }}
             tickFormatter={(v) => `${v / 1000}k`}
           />
           <Tooltip
@@ -73,7 +81,9 @@ export function SpendingChart({ summary }: { summary: Summary }) {
             ]}
             labelFormatter={(value) => `Day ${value}`}
             contentStyle={{
-              border: "1px solid #e7e9e0",
+              border: "1px solid var(--line)",
+              background: "var(--paper)",
+              color: "inherit",
               borderRadius: 8,
               fontSize: 12,
             }}
@@ -81,7 +91,7 @@ export function SpendingChart({ summary }: { summary: Summary }) {
           <Line
             type="linear"
             dataKey="pace"
-            stroke="#b7bba7"
+            stroke="var(--chart-pace)"
             strokeDasharray="5 5"
             strokeWidth={1.5}
             dot={false}
@@ -90,7 +100,7 @@ export function SpendingChart({ summary }: { summary: Summary }) {
           <Area
             type="monotone"
             dataKey="spent"
-            stroke="#35654d"
+            stroke="var(--chart-line)"
             strokeWidth={2.5}
             fill="url(#spend-fill)"
           />
