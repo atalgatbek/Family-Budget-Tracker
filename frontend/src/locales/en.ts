@@ -20,6 +20,7 @@ const en = {
   "nav.overview": "Overview",
   "nav.transactions": "Transactions",
   "nav.budgets": "Budgets",
+  "nav.goals": "Goals",
   "nav.reports": "Reports",
   "nav.household": "Household",
 
@@ -57,6 +58,9 @@ const en = {
   "title.budgets": "A plan you can live with.",
   "title.budgetsSub":
     "Give your money a purpose. Leave a little room for life.",
+  "title.goals": "Something to look forward to.",
+  "title.goalsSub":
+    "Save together for the things that matter to your household.",
   "title.reports": "See the bigger picture.",
   "title.reportsSub": "Your month in numbers, with room to reflect.",
   "title.household": "Better, together.",
@@ -367,6 +371,59 @@ const en = {
   "reports.spent": "Spent",
   "reports.remaining": "Remaining",
   "reports.used": "Used",
+
+  "goals.eyebrow": "SAVED SO FAR",
+  "goals.introAdmin":
+    "Create goals, add money as you go, and watch the progress.",
+  "goals.introMember":
+    "Your household’s shared goals. Anyone can add money; an admin manages the goals.",
+  "goals.new": "New goal",
+  "goals.emptyTitle": "Nothing to save for yet",
+  "goals.emptyAdmin":
+    "Create a goal and watch your household get closer to it.",
+  "goals.emptyMember": "Your household admin can create savings goals.",
+  "goals.left": "{amount} to go",
+  "goals.perMonth": "{amount} a month until {date}",
+  "goals.overdue": "the deadline was {date}",
+  "goals.noDeadline": "no deadline",
+  "goals.reached": "Goal reached",
+  "goals.contribute": "Add money",
+  "modal.goalNew": "New savings goal",
+  "modal.goalEdit": "Edit goal",
+  "modal.subGoal": "Name it, set the amount, and start small.",
+  "modal.contribute": "Add to “{name}”",
+  "modal.deleteGoal": "Delete this goal?",
+  "toast.goalCreated": "Goal created. Every little bit counts.",
+  "toast.goalUpdated": "Goal updated.",
+  "toast.goalContributed": "Added to your goal.",
+  "toast.goalReached": "Goal reached. Well done, everyone.",
+  "toast.goalDeleted": "Goal deleted.",
+  "form.goalName": "Goal name",
+  "form.goalNamePh": "e.g. Summer holiday",
+  "form.goalTarget": "Target amount",
+  "form.goalSaved": "Saved so far",
+  "form.goalDeadline": "Deadline",
+  "form.goalHint":
+    "Money added to a goal is tracked here only. It is not counted as an expense.",
+  "form.contributeAmount": "Amount to add",
+  "form.deleteGoalText":
+    "This will remove the goal and its saved amount. This action cannot be undone.",
+  "form.saveGoal": "Save goal",
+
+  "rates.title": "EXCHANGE RATES",
+  "rates.aria": "Exchange rates",
+  "rates.source": "National Bank of Kazakhstan · {date}",
+  "rates.week": "over the week",
+  "rates.same": "No change",
+  "rates.unavailable": "Exchange rates are unavailable right now.",
+  "currency.label": "Display currency",
+  "currency.notice":
+    "Amounts are shown in {name} at the National Bank rate for {date}: 1 {symbol} = {rate} ₸. Older entries use the same rate, and new amounts are still entered in tenge.",
+  "currency.KZT": "Tenge",
+  "currency.USD": "US dollar",
+  "currency.EUR": "Euro",
+  "currency.RUB": "Russian rouble",
+  "currency.CNY": "Chinese yuan",
 
   "house.eyebrow": "YOUR SHARED SPACE",
   "house.members_one": "{count} member",

@@ -99,3 +99,17 @@ class IncomeInput(Input):
         if value > today():
             raise ValueError("The income date cannot be in the future.")
         return value
+
+
+class GoalInput(Input):
+    name: Name = Field(max_length=60)
+    target_kzt: LimitMoney
+    deadline: date | None = None
+
+
+class GoalUpdate(GoalInput):
+    saved_kzt: int = Field(strict=True, ge=0, le=1_000_000_000)
+
+
+class GoalContribution(Input):
+    amount_kzt: Money

@@ -2,7 +2,7 @@
 
 Built from the **FamilyBudgetTeam_FamilyBudgetTracker_Task09** report, using React + TypeScript, asynchronous FastAPI, SQLAlchemy 2 AsyncSession, psycopg 3, PostgreSQL 17, and Pydantic 2.
 
-Includes overview, expense/income transactions, monthly budgets, reports/CSV exports, household management, receipt uploads, and Admin/Member access. The responsive interface uses warm neutral colors, green accents, and locally bundled fonts.
+Includes overview, expense/income transactions, monthly budgets, savings goals, reports/CSV exports, household management, receipt uploads, and Admin/Member access. The responsive interface uses warm neutral colors, green accents, and locally bundled fonts.
 
 ## Docker deployment
 
@@ -77,6 +77,27 @@ Run `make web` in another terminal. Open **http://127.0.0.1:5173**; Vite proxies
 
 Adding an existing user is immediate; no invitation email is sent. Password recovery, email verification, bank integrations, recurring transactions, and offline synchronization are outside this implementation.
 
+## Savings goals
+
+**Goals** is a separate page in the main navigation. A goal has a name, a target amount, an optional deadline, and the amount saved so far. The page shows the household total, and for each goal its progress, how much is left, and how much to put aside each month to reach the target by the deadline.
+
+- Admins create, edit, and delete goals. Every member can add money to a goal.
+- Adding money is one atomic database update, so contributions made at the same moment are all counted.
+- Money added to a goal is tracked only on the goal. It is not an expense and does not change budget totals.
+- Individual contributions are not stored, so there is no contribution history and a repeated request is not de-duplicated. An admin can correct the saved amount by editing the goal.
+
+Migration `003` creates the `savings_goal` table. The demo seed adds two synthetic goals when it creates the demo household; it does not add them to a household that already exists.
+
+## Exchange rates
+
+The overview shows official National Bank of Kazakhstan rates for USD, EUR, RUB, and CNY: the tenge price of one unit, a small chart of the last days, and the change over the week.
+
+- The API reads the bank's public daily feed (`nationalbank.kz/rss/get_rates.cfm`), so the API container needs outbound internet access. The browser only talks to `/api/rates`.
+- A published daily rate does not change, so each day is requested once and kept in the `exchange_rate` table (migration `004`). Later page loads are served from the database.
+- If the bank cannot be reached, the last stored rates are shown with their date and the API waits ten minutes before trying again. With nothing stored yet, the panel says the rates are unavailable.
+- These are official daily rates, not live exchange-office prices. Green means the currency became more expensive in tenge over the week, red means it became cheaper.
+- A switch next to the month picker (₸ $ € ₽ ¥) shows every amount on the site in the chosen currency at the latest stored rate. This only changes the display: amounts are stored and entered in tenge, CSV exports stay in tenge, and older entries are converted at the same current rate, which the page states in a notice. The choice is remembered in the browser.
+
 ## Report requirements
 
 | Requirement | Implementation |
@@ -96,6 +117,8 @@ Adding an existing user is immediate; no invitation email is sent. Password reco
 | Private receipt photos | Authenticated access, 5 MB cap, validated/re-encoded images with metadata removed |
 | Categories with no spending | LEFT JOIN and COALESCE preserve zero-spend categories |
 | Income | Additional household-scoped `income` table, with idempotency and date validation |
+| Savings goals (addition) | Household-scoped `savings_goal` table with range checks; atomic contributions; Admin-only management |
+| Exchange rates (addition) | `exchange_rate` cache table keyed by date and currency; rates fetched server-side from the National Bank feed |
 
 Archived categories without a limit or saved spending are omitted from summaries, matching Kids club in the report. Spending without a limit is included and identified. Review entries are editable by their author and admins; move an archived-category entry to an active category to approve it. Spending and balances are computed, never stored.
 
@@ -108,7 +131,7 @@ make test
 make build
 ```
 
-Integration tests run real migrations and clear only the test database. They cover concurrent duplicate saves, changed-payload conflicts, permissions, family isolation, receipts, invalid amounts/dates, raw-SQL database guards, income idempotency, cross-site requests, and transfer/audit behavior.
+Integration tests run real migrations and clear only the test database. They cover concurrent duplicate saves, changed-payload conflicts, permissions, family isolation, receipts, invalid amounts/dates, raw-SQL database guards, income idempotency, cross-site requests, transfer/audit behavior, savings-goal permissions and concurrent contributions, and exchange-rate parsing, caching, and outage handling (with the bank feed replaced by a stub).
 
 ## Code map
 

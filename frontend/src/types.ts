@@ -71,10 +71,18 @@ export type History = {
   changed_at: string;
   reason: string;
 };
+export type Goal = {
+  id: number;
+  name: string;
+  target_kzt: number;
+  saved_kzt: number;
+  deadline: string | null;
+};
 export type Workspace = {
   summary: Summary;
   recent: ExpensePage;
   categories: Category[];
   members: Member[];
   income: Income[];
+  goals: Goal[];
 };

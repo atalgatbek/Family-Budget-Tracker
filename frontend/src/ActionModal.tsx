@@ -2,12 +2,14 @@ import { useRef, useState, type FormEvent } from "react";
 import { Paperclip } from "lucide-react";
 import { api, messageOf, money, monthInText, today } from "./api";
 import { useI18n } from "./i18n";
+import { goalHint } from "./Goals";
 import { ErrorNotice, Modal, SubmitButton } from "./components";
 import type {
   BudgetCategory,
   Category,
   Expense,
   Family,
+  Goal,
   Income,
   Workspace,
 } from "./types";
@@ -22,7 +24,10 @@ export type Action =
   | { kind: "family" }
   | { kind: "new-family" }
   | { kind: "delete-expense"; expense: Expense }
-  | { kind: "delete-income"; income: Income };
+  | { kind: "delete-income"; income: Income }
+  | { kind: "goal"; goal?: Goal }
+  | { kind: "contribute"; goal: Goal }
+  | { kind: "delete-goal"; goal: Goal };
 
 export default function ActionModal({
   action,
@@ -51,6 +56,12 @@ export default function ActionModal({
     action.kind === "category" || action.kind === "limit"
       ? action.category
       : undefined;
+  const goal =
+    action.kind === "goal" ||
+    action.kind === "contribute" ||
+    action.kind === "delete-goal"
+      ? action.goal
+      : undefined;
   const activeCategories = data.categories.filter(
     (item) => item.is_active || item.id === expense?.category_id,
   );
@@ -65,6 +76,9 @@ export default function ActionModal({
     "new-family": t("modal.newFamily"),
     "delete-expense": t("modal.deleteExpense"),
     "delete-income": t("modal.deleteIncome"),
+    goal: t(goal ? "modal.goalEdit" : "modal.goalNew"),
+    contribute: t("modal.contribute", { name: goal?.name ?? "" }),
+    "delete-goal": t("modal.deleteGoal"),
   };
   const subtitles: Partial<Record<Action["kind"], string>> = {
     expense: t("modal.subExpense"),
@@ -72,6 +86,8 @@ export default function ActionModal({
     member: t("modal.subMember"),
     limit: t("modal.subLimit"),
     category: t("modal.subCategory"),
+    goal: t("modal.subGoal"),
+    contribute: goal ? (goalHint(goal, t) ?? t("goals.reached")) : "",
   };
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -182,6 +198,35 @@ export default function ActionModal({
       } else if (action.kind === "delete-income") {
         await api(`${base}/income/${action.income.id}`, { method: "DELETE" });
         onSaved(t("toast.incomeDeleted"));
+      } else if (action.kind === "goal") {
+        const body = {
+          name: values.name,
+          target_kzt: Number(values.target_kzt),
+          deadline: values.deadline || null,
+        };
+        if (action.goal)
+          await send(
+            `${base}/goals/${action.goal.id}`,
+            { ...body, saved_kzt: Number(values.saved_kzt) },
+            "PUT",
+          );
+        else await send(`${base}/goals`, body);
+        onSaved(t(action.goal ? "toast.goalUpdated" : "toast.goalCreated"));
+      } else if (action.kind === "contribute") {
+        const result = await send<Goal>(
+          `${base}/goals/${action.goal.id}/contributions`,
+          { amount_kzt: Number(values.amount_kzt) },
+        );
+        onSaved(
+          t(
+            result.saved_kzt >= result.target_kzt
+              ? "toast.goalReached"
+              : "toast.goalContributed",
+          ),
+        );
+      } else if (action.kind === "delete-goal") {
+        await api(`${base}/goals/${action.goal.id}`, { method: "DELETE" });
+        onSaved(t("toast.goalDeleted"));
       }
     } catch (error) {
       setError(messageOf(error));
@@ -194,6 +239,7 @@ export default function ActionModal({
     label: string,
     value?: number,
     max = 10000000,
+    { min = 1, focus = true } = {},
   ) => (
     <label>
       {label}
@@ -202,14 +248,14 @@ export default function ActionModal({
         <input
           name={name}
           type="number"
-          min="1"
+          min={min}
           max={max}
           step="1"
           inputMode="numeric"
           defaultValue={value}
           placeholder="0"
           required
-          autoFocus
+          autoFocus={focus}
         />
       </div>
     </label>
@@ -458,6 +504,66 @@ export default function ActionModal({
               {t("form.deleteIncomeText")}
             </p>
           )}
+          {action.kind === "goal" && (
+            <>
+              <label>
+                {t("form.goalName")}
+                <input
+                  name="name"
+                  defaultValue={goal?.name}
+                  maxLength={60}
+                  placeholder={t("form.goalNamePh")}
+                  required
+                  autoFocus
+                />
+              </label>
+              {amount(
+                "target_kzt",
+                t("form.goalTarget"),
+                goal?.target_kzt,
+                1000000000,
+                { focus: false },
+              )}
+              {goal &&
+                amount(
+                  "saved_kzt",
+                  t("form.goalSaved"),
+                  goal.saved_kzt,
+                  1000000000,
+                  { min: 0, focus: false },
+                )}
+              <label>
+                {t("form.goalDeadline")}{" "}
+                <span className="muted">{t("form.optional")}</span>
+                <input
+                  name="deadline"
+                  type="date"
+                  min={
+                    goal?.deadline && goal.deadline < today()
+                      ? undefined
+                      : today()
+                  }
+                  max="9998-12-31"
+                  defaultValue={goal?.deadline ?? ""}
+                />
+              </label>
+              <p className="form-hint">{t("form.goalHint")}</p>
+            </>
+          )}
+          {action.kind === "contribute" && (
+            <>
+              {amount("amount_kzt", t("form.contributeAmount"))}
+              <p className="form-hint">{t("form.goalHint")}</p>
+            </>
+          )}
+          {action.kind === "delete-goal" && (
+            <p className="delete-message">
+              {action.goal.name} ·{" "}
+              <strong>{money(action.goal.saved_kzt)}</strong>
+              <br />
+              {t("form.deleteGoalText")}
+            </p>
+          )}
         </fieldset>
         {error && <ErrorNotice message={error} />}
         <footer className="modal-actions">
@@ -471,13 +577,19 @@ export default function ActionModal({
           </button>
           <SubmitButton busy={busy}>
             {t(
-              action.kind.startsWith("delete")
-                ? "form.deleteEntry"
-                : action.kind === "expense"
-                  ? "form.saveExpense"
-                  : action.kind === "transfer"
-                    ? "form.moveBudget"
-                    : "common.saveChanges",
+              action.kind === "delete-goal"
+                ? "common.delete"
+                : action.kind === "goal"
+                  ? "form.saveGoal"
+                  : action.kind === "contribute"
+                    ? "goals.contribute"
+                    : action.kind.startsWith("delete")
+                      ? "form.deleteEntry"
+                      : action.kind === "expense"
+                        ? "form.saveExpense"
+                        : action.kind === "transfer"
+                          ? "form.moveBudget"
+                          : "common.saveChanges",
             )}
           </SubmitButton>
         </footer>

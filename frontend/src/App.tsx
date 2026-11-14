@@ -12,10 +12,19 @@ import {
   RefreshCw,
   ShieldCheck,
   SlidersHorizontal,
+  Target,
   Users,
   X,
 } from "lucide-react";
-import { api, initials, messageOf, monthName, today } from "./api";
+import {
+  api,
+  dateFull,
+  decimal,
+  initials,
+  messageOf,
+  monthName,
+  today,
+} from "./api";
 import { ErrorNotice, Loading, MonthPicker } from "./components";
 import AuthPage from "./AuthPage";
 import ActionModal, { type Action } from "./ActionModal";
@@ -23,12 +32,21 @@ import Overview from "./Overview";
 import Transactions from "./Transactions";
 import Budgets from "./Budgets";
 import Reports from "./Reports";
+import Goals from "./Goals";
 import Household from "./Household";
 import { ThemeToggle } from "./theme";
 import { LanguageSwitch, useI18n, type Key } from "./i18n";
+import {
+  CurrencySwitch,
+  currencySymbols,
+  savedCurrency,
+  setDisplay,
+  type Rates,
+} from "./currency";
 import type {
   Category,
   ExpensePage,
+  Goal,
   Income,
   Member,
   Session,
@@ -40,6 +58,7 @@ const navigation = [
   { id: "overview", icon: LayoutGrid },
   { id: "transactions", icon: ArrowRightLeft },
   { id: "budgets", icon: SlidersHorizontal },
+  { id: "goals", icon: Target },
   { id: "reports", icon: BarChart3 },
   { id: "household", icon: Users },
 ];
@@ -62,6 +81,11 @@ export default function App() {
   const [revision, setRevision] = useState(0);
   const [action, setAction] = useState<Action | null>(null);
   const [toast, setToast] = useState("");
+  const [currency, setCurrency] = useState(savedCurrency);
+  const [rates, setRates] = useState<Rates | null>(null);
+  const [ratesFailed, setRatesFailed] = useState(false);
+  // Set before anything below renders an amount.
+  const display = setDisplay(currency, rates);
   const family = session?.families.find((item) => item.id === familyId);
   const key = `${familyId}:${month}`;
   const workspace = data?.key === key ? data : null;
@@ -111,9 +135,10 @@ export default function App() {
       api<Category[]>(`${base}/categories`, options),
       api<Member[]>(`${base}/members`, options),
       api<Income[]>(`${base}/income?month=${month}`, options),
+      api<Goal[]>(`${base}/goals`, options),
     ])
-      .then(([summary, recent, categories, members, income]) => {
-        setData({ summary, recent, categories, members, income, key });
+      .then(([summary, recent, categories, members, income, goals]) => {
+        setData({ summary, recent, categories, members, income, goals, key });
         setError("");
       })
       .catch((error) => {
@@ -134,6 +159,28 @@ export default function App() {
       window.removeEventListener("focus", update);
     };
   }, [session]);
+  const userId = session?.user.id;
+  useEffect(() => {
+    if (!userId) return;
+    let active = true;
+    const load = () =>
+      api<Rates>("/rates")
+        .then((value) => {
+          if (!active) return;
+          setRates(value);
+          setRatesFailed(false);
+        })
+        .catch(() => {
+          if (active) setRatesFailed(true);
+        });
+    load();
+    // Official rates change once a day; a long-open tab still picks them up.
+    const interval = window.setInterval(load, 30 * 60 * 1000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [userId]);
   useEffect(() => {
     if (toast) {
       const timeout = window.setTimeout(() => setToast(""), 6500);
@@ -194,6 +241,8 @@ export default function App() {
       </div>
     );
   const viewTitle = t(`nav.${view}` as Key);
+  // Household and goals are not tied to a month.
+  const monthly = view !== "household" && view !== "goals";
   const firstName = session.user.full_name.split(" ")[0];
   return (
     <div className="app-shell">
@@ -352,6 +401,9 @@ export default function App() {
             </div>
             <div className="heading-actions">
               {view !== "household" && (
+                <CurrencySwitch rates={rates} onChange={setCurrency} />
+              )}
+              {monthly && (
                 <MonthPicker
                   month={month}
                   onChange={(value) => {
@@ -369,6 +421,15 @@ export default function App() {
                   <Plus size={18} /> {t("action.addExpense")}
                 </button>
               )}
+              {view === "goals" && family.role === "Admin" && (
+                <button
+                  className="button primary"
+                  onClick={() => setAction({ kind: "goal" })}
+                  disabled={!workspace}
+                >
+                  <Plus size={18} /> {t("goals.new")}
+                </button>
+              )}
             </div>
           </div>
           {error && (
@@ -377,11 +438,19 @@ export default function App() {
               retry={() => setRevision((value) => value + 1)}
             />
           )}
+          {display.code !== "KZT" && rates && view !== "household" && (
+            <div className="info-notice">
+              {t("currency.notice", {
+                name: t(`currency.${display.code}` as Key),
+                date: dateFull(rates.as_of),
+                symbol: currencySymbols[display.code],
+                rate: decimal(display.rate),
+              })}
+            </div>
+          )}
           {workspace ? (
             <>
-              <div className="mobile-period">
-                {view !== "household" && monthName(month)}
-              </div>
+              <div className="mobile-period">{monthly && monthName(month)}</div>
               {view === "overview" && (
                 <Overview
                   data={workspace}
@@ -389,6 +458,8 @@ export default function App() {
                   month={month}
                   onAction={setAction}
                   navigate={navigate}
+                  rates={rates}
+                  ratesFailed={ratesFailed}
                 />
               )}
               {view === "transactions" && (
@@ -407,6 +478,13 @@ export default function App() {
                   month={month}
                   revision={revision}
                   data={workspace}
+                  onAction={setAction}
+                />
+              )}
+              {view === "goals" && (
+                <Goals
+                  goals={workspace.goals}
+                  family={family}
                   onAction={setAction}
                 />
               )}

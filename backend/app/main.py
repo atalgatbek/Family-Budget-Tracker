@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from .config import get_settings
 from .database import engine
-from .routes import auth, budgets, expenses, families, income
+from .routes import auth, budgets, expenses, families, goals, income, rates
 
 
 @asynccontextmanager
@@ -20,7 +20,7 @@ app = FastAPI(
     title="Family Budget Tracker",
     version="1.0.0",
     lifespan=lifespan,
-    description="Shared KZT budgets, household permissions, receipt storage, and atomic budget transfers.",
+    description="Shared KZT budgets, household permissions, receipt storage, atomic budget transfers, and savings goals.",
 )
 settings = get_settings()
 app.add_middleware(
@@ -91,5 +91,7 @@ for router in [
     budgets.router,
     expenses.router,
     income.router,
+    goals.router,
+    rates.router,
 ]:
     app.include_router(router, prefix="/api")
