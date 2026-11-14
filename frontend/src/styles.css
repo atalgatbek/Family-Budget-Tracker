@@ -2897,3 +2897,47 @@ table tfoot td {
     right: 14px;
   }
 }
+
+/* Savings goals */
+.goal-card {
+  min-width: 0;
+  padding: 20px 22px 10px;
+}
+.goal-icon {
+  color: var(--status-good);
+  background: var(--status-good-bg);
+}
+.goal-card .category-name strong {
+  overflow-wrap: anywhere;
+}
+.goal-card .progress-track > div {
+  background: var(--status-good);
+}
+.goal-hint {
+  display: flex;
+  align-items: center;
+  min-height: 16px;
+  margin-top: 12px;
+  font-size: 10px;
+  line-height: 1.6;
+  color: light-dark(#737e65, #a4ad99);
+}
+.goal-hint .status-pill {
+  padding: 2px 8px 2px 6px;
+  font-size: 10px;
+  line-height: 12px;
+}
+.goal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 32px;
+  margin-top: 6px;
+}
+.goal-actions .text-button {
+  font-size: 11px;
+}
+.goal-actions > span {
+  display: flex;
+  gap: 2px;
+}

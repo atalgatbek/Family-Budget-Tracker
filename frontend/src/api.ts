@@ -114,6 +114,17 @@ export const dateLabel = (date: string) =>
         getLang() === "en" ? "en-GB" : "ru-RU",
         { day: "numeric", month: "short" },
       );
+/** Date with the year, for deadlines: "1 Jun 2027". */
+export const dateFull = (date: string) =>
+  getLang() === "kk"
+    ? `${dateLabel(date)} ${date.slice(0, 4)}`
+    : new Date(`${date.slice(0, 10)}T12:00:00`)
+        .toLocaleDateString(getLang() === "en" ? "en-GB" : "ru-RU", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })
+        .replace(/\s*г\.$/, "");
 export const initials = (name: string) =>
   name
     .split(" ")

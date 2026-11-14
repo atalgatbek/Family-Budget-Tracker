@@ -2,7 +2,7 @@
 
 Built from the **FamilyBudgetTeam_FamilyBudgetTracker_Task09** report, using React + TypeScript, asynchronous FastAPI, SQLAlchemy 2 AsyncSession, psycopg 3, PostgreSQL 17, and Pydantic 2.
 
-Includes overview, expense/income transactions, monthly budgets, reports/CSV exports, household management, receipt uploads, and Admin/Member access. The responsive interface uses warm neutral colors, green accents, and locally bundled fonts.
+Includes overview, expense/income transactions, monthly budgets, savings goals, reports/CSV exports, household management, receipt uploads, and Admin/Member access. The responsive interface uses warm neutral colors, green accents, and locally bundled fonts.
 
 ## Docker deployment
 
@@ -77,6 +77,17 @@ Run `make web` in another terminal. Open **http://127.0.0.1:5173**; Vite proxies
 
 Adding an existing user is immediate; no invitation email is sent. Password recovery, email verification, bank integrations, recurring transactions, and offline synchronization are outside this implementation.
 
+## Savings goals
+
+**Goals** is a separate page in the main navigation. A goal has a name, a target amount, an optional deadline, and the amount saved so far. The page shows the household total, and for each goal its progress, how much is left, and how much to put aside each month to reach the target by the deadline.
+
+- Admins create, edit, and delete goals. Every member can add money to a goal.
+- Adding money is one atomic database update, so contributions made at the same moment are all counted.
+- Money added to a goal is tracked only on the goal. It is not an expense and does not change budget totals.
+- Individual contributions are not stored, so there is no contribution history and a repeated request is not de-duplicated. An admin can correct the saved amount by editing the goal.
+
+Migration `003` creates the `savings_goal` table. The demo seed adds two synthetic goals when it creates the demo household; it does not add them to a household that already exists.
+
 ## Report requirements
 
 | Requirement | Implementation |
@@ -96,6 +107,7 @@ Adding an existing user is immediate; no invitation email is sent. Password reco
 | Private receipt photos | Authenticated access, 5 MB cap, validated/re-encoded images with metadata removed |
 | Categories with no spending | LEFT JOIN and COALESCE preserve zero-spend categories |
 | Income | Additional household-scoped `income` table, with idempotency and date validation |
+| Savings goals (addition) | Household-scoped `savings_goal` table with range checks; atomic contributions; Admin-only management |
 
 Archived categories without a limit or saved spending are omitted from summaries, matching Kids club in the report. Spending without a limit is included and identified. Review entries are editable by their author and admins; move an archived-category entry to an active category to approve it. Spending and balances are computed, never stored.
 
@@ -108,7 +120,7 @@ make test
 make build
 ```
 
-Integration tests run real migrations and clear only the test database. They cover concurrent duplicate saves, changed-payload conflicts, permissions, family isolation, receipts, invalid amounts/dates, raw-SQL database guards, income idempotency, cross-site requests, and transfer/audit behavior.
+Integration tests run real migrations and clear only the test database. They cover concurrent duplicate saves, changed-payload conflicts, permissions, family isolation, receipts, invalid amounts/dates, raw-SQL database guards, income idempotency, cross-site requests, transfer/audit behavior, and savings-goal permissions and concurrent contributions.
 
 ## Code map
 

@@ -362,3 +362,122 @@ async def test_csrf_origin_and_income_idempotency(client, household):
     assert (
         await client.get(f"/api/families/{family}/summary?month={today():%Y-%m}")
     ).json()["income_kzt"] == 200000
+
+
+async def test_savings_goals_permissions_and_concurrent_contributions(
+    client, household
+):
+    family, _ = household
+    base = f"/api/families/{family}/goals"
+    future = (today() + timedelta(days=200)).isoformat()
+    for bad in [
+        {"name": "Holiday", "target_kzt": 0},
+        {"name": " ", "target_kzt": 1000},
+        {"name": "Holiday", "target_kzt": 1000, "saved_kzt": 5},
+        {
+            "name": "Holiday",
+            "target_kzt": 1000,
+            "deadline": (today() - timedelta(days=1)).isoformat(),
+        },
+    ]:
+        assert (await client.post(base, json=bad)).status_code == 422
+    response = await client.post(
+        base, json={"name": "Summer holiday", "target_kzt": 300000, "deadline": future}
+    )
+    assert response.status_code == 201, response.text
+    goal = response.json()
+    assert goal["saved_kzt"] == 0 and goal["deadline"] == future
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as other:
+        response = await other.post(
+            "/api/auth/register",
+            json={
+                "email": "member@example.com",
+                "password": "TestPassword123!",
+                "full_name": "Other Member",
+                "family_name": "Other family",
+            },
+        )
+        other_family = response.json()["families"][0]["id"]
+        # Another household can neither see nor change the goal.
+        assert (await other.get(base)).status_code == 404
+        assert (
+            await other.post(
+                f"/api/families/{other_family}/goals/{goal['id']}/contributions",
+                json={"amount_kzt": 1000},
+            )
+        ).status_code == 404
+        assert (
+            await client.post(
+                f"/api/families/{family}/members", json={"email": "member@example.com"}
+            )
+        ).status_code == 201
+        # A member sees goals and adds money, but only admins manage them.
+        assert [row["name"] for row in (await other.get(base)).json()] == [
+            "Summer holiday"
+        ]
+        assert (
+            await other.post(base, json={"name": "Car", "target_kzt": 5000})
+        ).status_code == 403
+        assert (
+            await other.put(
+                f"{base}/{goal['id']}",
+                json={"name": "Car", "target_kzt": 5000, "saved_kzt": 0},
+            )
+        ).status_code == 403
+        assert (await other.delete(f"{base}/{goal['id']}")).status_code == 403
+        # Simultaneous contributions from two people must all be counted.
+        results = await asyncio.gather(
+            *[
+                person.post(
+                    f"{base}/{goal['id']}/contributions", json={"amount_kzt": 10000}
+                )
+                for person in [client, other] * 4
+            ]
+        )
+        assert all(result.status_code == 200 for result in results)
+    assert (await client.get(base)).json()[0]["saved_kzt"] == 80000
+    for bad_amount in [0, -5, 10_000_001, "100"]:
+        assert (
+            await client.post(
+                f"{base}/{goal['id']}/contributions", json={"amount_kzt": bad_amount}
+            )
+        ).status_code == 422
+    assert (
+        await client.post(f"{base}/999999/contributions", json={"amount_kzt": 1})
+    ).status_code == 404
+
+    # An admin can correct the goal; the stored amount cannot pass the cap.
+    response = await client.put(
+        f"{base}/{goal['id']}",
+        json={
+            "name": "Holiday",
+            "target_kzt": 250000,
+            "saved_kzt": 999_995_000,
+            "deadline": None,
+        },
+    )
+    assert response.status_code == 200
+    assert response.json() == {
+        "id": goal["id"],
+        "name": "Holiday",
+        "target_kzt": 250000,
+        "saved_kzt": 999_995_000,
+        "deadline": None,
+    }
+    response = await client.post(
+        f"{base}/{goal['id']}/contributions", json={"amount_kzt": 10000}
+    )
+    assert response.status_code == 422
+    assert (await client.get(base)).json()[0]["saved_kzt"] == 999_995_000
+    async with engine.begin() as connection:
+        with pytest.raises(IntegrityError):
+            await connection.execute(
+                text("UPDATE savings_goal SET saved_kzt = -1 WHERE id = :id"),
+                {"id": goal["id"]},
+            )
+    assert (await client.delete(f"{base}/{goal['id']}")).status_code == 204
+    assert (await client.get(base)).json() == []
+    assert (await client.delete(f"{base}/{goal['id']}")).status_code == 404

@@ -1,7 +1,7 @@
 """Explicit, idempotent demo seed. Never run automatically in production."""
 
 import asyncio
-from datetime import date
+from datetime import date, timedelta
 from uuid import uuid4
 from PIL import Image, ImageDraw
 from sqlalchemy import func, select, text
@@ -9,7 +9,17 @@ from starlette.concurrency import run_in_threadpool
 from .auth import password_hash
 from .config import get_settings
 from .database import SessionLocal, engine
-from .models import Category, Expense, Family, FamilyMember, Income, MonthlyLimit, User
+from .models import (
+    Category,
+    Expense,
+    Family,
+    FamilyMember,
+    Income,
+    MonthlyLimit,
+    SavingsGoal,
+    User,
+)
+from .schemas import today
 
 DEMO_PASSWORD = "FamilyDemo2026!"
 
@@ -138,6 +148,24 @@ async def seed():
                     income_date=date(2026, 10, 5),
                     source="October salary · demo",
                     client_request_id=str(uuid4()),
+                ),
+            ]
+        )
+        # Synthetic savings goals: one with a deadline, one open-ended.
+        db.add_all(
+            [
+                SavingsGoal(
+                    family_id=family.id,
+                    name="Summer holiday",
+                    target_kzt=300000,
+                    saved_kzt=120000,
+                    deadline=today() + timedelta(days=210),
+                ),
+                SavingsGoal(
+                    family_id=family.id,
+                    name="Emergency fund",
+                    target_kzt=500000,
+                    saved_kzt=85000,
                 ),
             ]
         )

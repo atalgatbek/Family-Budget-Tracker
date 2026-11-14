@@ -12,6 +12,7 @@ import {
   RefreshCw,
   ShieldCheck,
   SlidersHorizontal,
+  Target,
   Users,
   X,
 } from "lucide-react";
@@ -23,12 +24,14 @@ import Overview from "./Overview";
 import Transactions from "./Transactions";
 import Budgets from "./Budgets";
 import Reports from "./Reports";
+import Goals from "./Goals";
 import Household from "./Household";
 import { ThemeToggle } from "./theme";
 import { LanguageSwitch, useI18n, type Key } from "./i18n";
 import type {
   Category,
   ExpensePage,
+  Goal,
   Income,
   Member,
   Session,
@@ -40,6 +43,7 @@ const navigation = [
   { id: "overview", icon: LayoutGrid },
   { id: "transactions", icon: ArrowRightLeft },
   { id: "budgets", icon: SlidersHorizontal },
+  { id: "goals", icon: Target },
   { id: "reports", icon: BarChart3 },
   { id: "household", icon: Users },
 ];
@@ -111,9 +115,10 @@ export default function App() {
       api<Category[]>(`${base}/categories`, options),
       api<Member[]>(`${base}/members`, options),
       api<Income[]>(`${base}/income?month=${month}`, options),
+      api<Goal[]>(`${base}/goals`, options),
     ])
-      .then(([summary, recent, categories, members, income]) => {
-        setData({ summary, recent, categories, members, income, key });
+      .then(([summary, recent, categories, members, income, goals]) => {
+        setData({ summary, recent, categories, members, income, goals, key });
         setError("");
       })
       .catch((error) => {
@@ -194,6 +199,8 @@ export default function App() {
       </div>
     );
   const viewTitle = t(`nav.${view}` as Key);
+  // Household and goals are not tied to a month.
+  const monthly = view !== "household" && view !== "goals";
   const firstName = session.user.full_name.split(" ")[0];
   return (
     <div className="app-shell">
@@ -351,7 +358,7 @@ export default function App() {
               <p>{t(`title.${view}Sub` as Key, { family: family.name })}</p>
             </div>
             <div className="heading-actions">
-              {view !== "household" && (
+              {monthly && (
                 <MonthPicker
                   month={month}
                   onChange={(value) => {
@@ -369,6 +376,15 @@ export default function App() {
                   <Plus size={18} /> {t("action.addExpense")}
                 </button>
               )}
+              {view === "goals" && family.role === "Admin" && (
+                <button
+                  className="button primary"
+                  onClick={() => setAction({ kind: "goal" })}
+                  disabled={!workspace}
+                >
+                  <Plus size={18} /> {t("goals.new")}
+                </button>
+              )}
             </div>
           </div>
           {error && (
@@ -379,9 +395,7 @@ export default function App() {
           )}
           {workspace ? (
             <>
-              <div className="mobile-period">
-                {view !== "household" && monthName(month)}
-              </div>
+              <div className="mobile-period">{monthly && monthName(month)}</div>
               {view === "overview" && (
                 <Overview
                   data={workspace}
@@ -407,6 +421,13 @@ export default function App() {
                   month={month}
                   revision={revision}
                   data={workspace}
+                  onAction={setAction}
+                />
+              )}
+              {view === "goals" && (
+                <Goals
+                  goals={workspace.goals}
+                  family={family}
                   onAction={setAction}
                 />
               )}

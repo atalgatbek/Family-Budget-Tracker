@@ -22,6 +22,7 @@ const kk: Record<keyof typeof en, string> = {
   "nav.overview": "Шолу",
   "nav.transactions": "Операциялар",
   "nav.budgets": "Бюджеттер",
+  "nav.goals": "Мақсаттар",
   "nav.reports": "Есептер",
   "nav.household": "Отбасы",
 
@@ -59,6 +60,8 @@ const kk: Record<keyof typeof en, string> = {
   "title.budgets": "Өмір сүруге ыңғайлы жоспар.",
   "title.budgetsSub":
     "Ақшаңызға мақсат беріңіз. Өмірге де сәл орын қалдырыңыз.",
+  "title.goals": "Жинауға тұрарлық нәрсе.",
+  "title.goalsSub": "Отбасыңызға маңызды нәрселерге бірге жинаңыз.",
   "title.reports": "Жалпы көрініске қараңыз.",
   "title.reportsSub": "Айыңыз сандармен: асықпай ойлануға мүмкіндік.",
   "title.household": "Бірге жақсырақ.",
@@ -367,6 +370,45 @@ const kk: Record<keyof typeof en, string> = {
   "reports.remaining": "Қалдық",
   "reports.used": "Пайдаланылды",
 
+  "goals.eyebrow": "ЖИНАЛҒАНЫ",
+  "goals.introAdmin":
+    "Мақсат құрып, мүмкіндігінше толықтырып, барысын бақылаңыз.",
+  "goals.introMember":
+    "Отбасыңыздың ортақ мақсаттары. Кез келген мүше толықтыра алады, мақсаттарды әкімші басқарады.",
+  "goals.new": "Жаңа мақсат",
+  "goals.emptyTitle": "Әзірге мақсат жоқ",
+  "goals.emptyAdmin":
+    "Мақсат құрып, отбасыңыздың оған қалай жақындағанын бақылаңыз.",
+  "goals.emptyMember": "Жинақ мақсаттарын отбасы әкімшісі құрады.",
+  "goals.left": "{amount} қалды",
+  "goals.perMonth": "{date} дейін айына {amount}",
+  "goals.overdue": "мерзімі {date} болған",
+  "goals.noDeadline": "мерзімсіз",
+  "goals.reached": "Мақсат орындалды",
+  "goals.contribute": "Толықтыру",
+  "modal.goalNew": "Жаңа жинақ мақсаты",
+  "modal.goalEdit": "Мақсатты өзгерту",
+  "modal.subGoal":
+    "Мақсатқа атау беріп, соманы белгілеңіз және аздан бастаңыз.",
+  "modal.contribute": "«{name}» мақсатын толықтыру",
+  "modal.deleteGoal": "Бұл мақсатты жою керек пе?",
+  "toast.goalCreated": "Мақсат құрылды. Әр жарна оған жақындатады.",
+  "toast.goalUpdated": "Мақсат жаңартылды.",
+  "toast.goalContributed": "Мақсат толықтырылды.",
+  "toast.goalReached": "Мақсат орындалды. Жарайсыздар!",
+  "toast.goalDeleted": "Мақсат жойылды.",
+  "form.goalName": "Мақсат атауы",
+  "form.goalNamePh": "мыс. Жазғы демалыс",
+  "form.goalTarget": "Мақсатты сома",
+  "form.goalSaved": "Жиналған сома",
+  "form.goalDeadline": "Мерзімі",
+  "form.goalHint":
+    "Мақсатқа салынған ақша тек осында есептеледі және шығыс болып саналмайды.",
+  "form.contributeAmount": "Толықтыру сомасы",
+  "form.deleteGoalText":
+    "Мақсат пен оған жиналған сома жойылады. Бұл әрекетті кері қайтару мүмкін емес.",
+  "form.saveGoal": "Мақсатты сақтау",
+
   "house.eyebrow": "СІЗДІҢ ОРТАҚ КЕҢІСТІГІҢІЗ",
   "house.members_one": "{count} мүше",
   "house.members_few": "{count} мүше",
@@ -407,6 +449,11 @@ export const kkServer: Record<string, string> = {
   Member: "Мүше",
   "Monthly plan updated": "Айлық жоспар жаңартылды",
   "Budget transfer": "Бюджетті ауыстыру",
+  "Savings goal not found.": "Жинақ мақсаты табылмады.",
+  "Choose a deadline that is today or later.":
+    "Мерзімді бүгінгі күннен ерте қоймаңыз.",
+  "The saved amount would be too large.":
+    "Жиналған сома тым үлкен болып кетеді.",
   "Something went wrong. Please try again.":
     "Бірдеңе дұрыс болмады. Қайталап көріңіз.",
   "Please sign in to continue.": "Жалғастыру үшін кіріңіз.",

@@ -156,3 +156,23 @@ class Income(Base):
         ),
         Index("income_family_date_idx", "family_id", "income_date"),
     )
+
+
+class SavingsGoal(Base):
+    __tablename__ = "savings_goal"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    family_id: Mapped[int] = mapped_column(ForeignKey("family.id"), index=True)
+    name: Mapped[str] = mapped_column(String(60))
+    target_kzt: Mapped[int] = mapped_column(Integer)
+    # The amount is the source data here: contributions are not kept as rows.
+    saved_kzt: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    deadline: Mapped[date | None] = mapped_column(Date)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    __table_args__ = (
+        CheckConstraint(
+            "target_kzt BETWEEN 1 AND 1000000000", name="goal_target_range"
+        ),
+        CheckConstraint("saved_kzt BETWEEN 0 AND 1000000000", name="goal_saved_range"),
+    )
