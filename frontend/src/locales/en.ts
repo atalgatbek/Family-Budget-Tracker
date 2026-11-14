@@ -410,6 +410,17 @@ const en = {
     "This will remove the goal and its saved amount. This action cannot be undone.",
   "form.saveGoal": "Save goal",
 
+  "rates.title": "EXCHANGE RATES",
+  "rates.aria": "Exchange rates",
+  "rates.source": "National Bank of Kazakhstan · {date}",
+  "rates.week": "over the week",
+  "rates.same": "No change",
+  "rates.unavailable": "Exchange rates are unavailable right now.",
+  "currency.USD": "US dollar",
+  "currency.EUR": "Euro",
+  "currency.RUB": "Russian rouble",
+  "currency.CNY": "Chinese yuan",
+
   "house.eyebrow": "YOUR SHARED SPACE",
   "house.members_one": "{count} member",
   "house.members_few": "{count} members",

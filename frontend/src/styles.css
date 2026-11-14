@@ -2941,3 +2941,146 @@ table tfoot td {
   display: flex;
   gap: 2px;
 }
+
+/* Exchange rates */
+.rates-panel {
+  margin-bottom: 25px;
+}
+.rates-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 16px 23px 14px;
+}
+.rates-head .eyebrow {
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+.rates-head small {
+  text-align: right;
+}
+.rates-head small,
+.rates-empty {
+  font-size: 10px;
+  color: light-dark(#737e65, #8e958d);
+}
+.rates-empty {
+  padding: 0 23px 18px;
+  font-size: 11px;
+}
+.rate-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+}
+.rate-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px 23px 15px;
+}
+.rate-tile + .rate-tile {
+  border-left: 1px solid var(--line);
+}
+.rate-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.rate-name .category-icon {
+  font-family: "Manrope", sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+}
+.rate-name strong {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: light-dark(#46513c, #c4cbc1);
+}
+.rate-name small {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  font-size: 10px;
+  color: light-dark(#737e65, #8e958d);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rate-value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: light-dark(#a0a58f, #6f776c);
+}
+.rate-value strong {
+  font-family: "Manrope", sans-serif;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  white-space: nowrap;
+  color: light-dark(#3a4335, #d5dbd2);
+}
+.rate-value strong span {
+  font-size: 13px;
+  font-weight: 500;
+  color: light-dark(#8e9a80, #96a189);
+}
+.rate-spark {
+  flex-shrink: 1;
+  width: 104px;
+  min-width: 0;
+  height: 34px;
+}
+.rate-value.up,
+.rate-change.up {
+  color: var(--status-good);
+}
+.rate-value.down,
+.rate-change.down {
+  color: var(--status-critical);
+}
+.rate-change {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 15px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: light-dark(#737e65, #8e958d);
+}
+.rate-change small {
+  font-size: 10px;
+  font-weight: 400;
+  color: light-dark(#737e65, #8e958d);
+}
+@media (max-width: 980px) {
+  .rate-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .rate-tile:nth-child(3) {
+    border-left: 0;
+  }
+  .rate-tile:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
+}
+@media (max-width: 760px) {
+  .rates-head,
+  .rate-tile {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .rate-value strong {
+    font-size: 16px;
+  }
+  .rate-spark {
+    width: 56px;
+  }
+}

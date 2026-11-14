@@ -405,6 +405,17 @@ const ru: Record<keyof typeof en, string> = {
     "Цель и накопленная по ней сумма будут удалены. Это действие нельзя отменить.",
   "form.saveGoal": "Сохранить цель",
 
+  "rates.title": "КУРСЫ ВАЛЮТ",
+  "rates.aria": "Курсы валют",
+  "rates.source": "Нацбанк РК · на {date}",
+  "rates.week": "за неделю",
+  "rates.same": "Без изменений",
+  "rates.unavailable": "Курсы валют сейчас недоступны.",
+  "currency.USD": "Доллар США",
+  "currency.EUR": "Евро",
+  "currency.RUB": "Российский рубль",
+  "currency.CNY": "Китайский юань",
+
   "house.eyebrow": "ВАШЕ ОБЩЕЕ ПРОСТРАНСТВО",
   "house.members_one": "{count} участник",
   "house.members_few": "{count} участника",

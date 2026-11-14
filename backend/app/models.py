@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from decimal import Decimal
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -8,6 +9,7 @@ from sqlalchemy import (
     ForeignKeyConstraint,
     Index,
     Integer,
+    Numeric,
     String,
     UniqueConstraint,
     func,
@@ -176,3 +178,13 @@ class SavingsGoal(Base):
         ),
         CheckConstraint("saved_kzt BETWEEN 0 AND 1000000000", name="goal_saved_range"),
     )
+
+
+class ExchangeRate(Base):
+    """Official National Bank rate: how many KZT one unit of the currency costs."""
+
+    __tablename__ = "exchange_rate"
+    rate_date: Mapped[date] = mapped_column(Date, primary_key=True)
+    currency: Mapped[str] = mapped_column(String(3), primary_key=True)
+    rate_kzt: Mapped[Decimal] = mapped_column(Numeric(14, 6))
+    __table_args__ = (CheckConstraint("rate_kzt > 0", name="exchange_rate_positive"),)

@@ -409,6 +409,17 @@ const kk: Record<keyof typeof en, string> = {
     "Мақсат пен оған жиналған сома жойылады. Бұл әрекетті кері қайтару мүмкін емес.",
   "form.saveGoal": "Мақсатты сақтау",
 
+  "rates.title": "ВАЛЮТА БАҒАМДАРЫ",
+  "rates.aria": "Валюта бағамдары",
+  "rates.source": "ҚР Ұлттық Банкі · {date}",
+  "rates.week": "бір аптада",
+  "rates.same": "Өзгеріссіз",
+  "rates.unavailable": "Валюта бағамдары қазір қолжетімсіз.",
+  "currency.USD": "АҚШ доллары",
+  "currency.EUR": "Еуро",
+  "currency.RUB": "Ресей рублі",
+  "currency.CNY": "Қытай юані",
+
   "house.eyebrow": "СІЗДІҢ ОРТАҚ КЕҢІСТІГІҢІЗ",
   "house.members_one": "{count} мүше",
   "house.members_few": "{count} мүше",

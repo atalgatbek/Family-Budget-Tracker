@@ -88,6 +88,15 @@ Adding an existing user is immediate; no invitation email is sent. Password reco
 
 Migration `003` creates the `savings_goal` table. The demo seed adds two synthetic goals when it creates the demo household; it does not add them to a household that already exists.
 
+## Exchange rates
+
+The overview shows official National Bank of Kazakhstan rates for USD, EUR, RUB, and CNY: the tenge price of one unit, a small chart of the last days, and the change over the week.
+
+- The API reads the bank's public daily feed (`nationalbank.kz/rss/get_rates.cfm`), so the API container needs outbound internet access. The browser only talks to `/api/rates`.
+- A published daily rate does not change, so each day is requested once and kept in the `exchange_rate` table (migration `004`). Later page loads are served from the database.
+- If the bank cannot be reached, the last stored rates are shown with their date and the API waits ten minutes before trying again. With nothing stored yet, the panel says the rates are unavailable.
+- These are official daily rates, not live exchange-office prices. Green means the currency became more expensive in tenge over the week, red means it became cheaper.
+
 ## Report requirements
 
 | Requirement | Implementation |
@@ -108,6 +117,7 @@ Migration `003` creates the `savings_goal` table. The demo seed adds two synthet
 | Categories with no spending | LEFT JOIN and COALESCE preserve zero-spend categories |
 | Income | Additional household-scoped `income` table, with idempotency and date validation |
 | Savings goals (addition) | Household-scoped `savings_goal` table with range checks; atomic contributions; Admin-only management |
+| Exchange rates (addition) | `exchange_rate` cache table keyed by date and currency; rates fetched server-side from the National Bank feed |
 
 Archived categories without a limit or saved spending are omitted from summaries, matching Kids club in the report. Spending without a limit is included and identified. Review entries are editable by their author and admins; move an archived-category entry to an active category to approve it. Spending and balances are computed, never stored.
 
@@ -120,7 +130,7 @@ make test
 make build
 ```
 
-Integration tests run real migrations and clear only the test database. They cover concurrent duplicate saves, changed-payload conflicts, permissions, family isolation, receipts, invalid amounts/dates, raw-SQL database guards, income idempotency, cross-site requests, transfer/audit behavior, and savings-goal permissions and concurrent contributions.
+Integration tests run real migrations and clear only the test database. They cover concurrent duplicate saves, changed-payload conflicts, permissions, family isolation, receipts, invalid amounts/dates, raw-SQL database guards, income idempotency, cross-site requests, transfer/audit behavior, savings-goal permissions and concurrent contributions, and exchange-rate parsing, caching, and outage handling (with the bank feed replaced by a stub).
 
 ## Code map
 

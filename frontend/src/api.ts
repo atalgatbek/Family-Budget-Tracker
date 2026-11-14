@@ -78,6 +78,12 @@ export const number = (amount: number) =>
   new Intl.NumberFormat(getLang() === "en" ? "en-US" : "ru-RU", {
     maximumFractionDigits: 0,
   }).format(amount);
+/** Two decimal places, for exchange rates and percentages. */
+export const decimal = (value: number) =>
+  new Intl.NumberFormat(getLang() === "en" ? "en-US" : "ru-RU", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
 export const money = (amount: number) => `${number(amount)} ₸`;
 export const today = () =>
   new Intl.DateTimeFormat("en-CA", {

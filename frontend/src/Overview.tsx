@@ -12,6 +12,7 @@ import { useI18n } from "./i18n";
 import { BudgetRow, CategoryIcon, Empty } from "./components";
 import { SpendingChart } from "./Charts";
 import StatusPanel from "./Status";
+import RatesPanel from "./Rates";
 import type { Action } from "./ActionModal";
 import type { Expense, Family, Workspace } from "./types";
 
@@ -212,6 +213,7 @@ export default function Overview({
         </div>
       </section>
       <StatusPanel summary={summary} month={month} navigate={navigate} />
+      <RatesPanel />
       <div className="overview-grid">
         <div className="overview-main">
           <section className="panel spending-panel">
