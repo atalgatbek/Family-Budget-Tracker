@@ -415,6 +415,10 @@ const kk: Record<keyof typeof en, string> = {
   "rates.week": "бір аптада",
   "rates.same": "Өзгеріссіз",
   "rates.unavailable": "Валюта бағамдары қазір қолжетімсіз.",
+  "currency.label": "Көрсету валютасы",
+  "currency.notice":
+    "Сомалар «{name}» валютасында ҚР Ұлттық Банкінің {date} күнгі бағамы бойынша көрсетілген: 1 {symbol} = {rate} ₸. Ескі жазбалар да осы бағаммен есептелген, ал сомалар бұрынғыдай теңгемен енгізіледі.",
+  "currency.KZT": "Теңге",
   "currency.USD": "АҚШ доллары",
   "currency.EUR": "Еуро",
   "currency.RUB": "Ресей рублі",

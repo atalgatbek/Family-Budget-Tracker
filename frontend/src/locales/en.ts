@@ -416,6 +416,10 @@ const en = {
   "rates.week": "over the week",
   "rates.same": "No change",
   "rates.unavailable": "Exchange rates are unavailable right now.",
+  "currency.label": "Display currency",
+  "currency.notice":
+    "Amounts are shown in {name} at the National Bank rate for {date}: 1 {symbol} = {rate} ₸. Older entries use the same rate, and new amounts are still entered in tenge.",
+  "currency.KZT": "Tenge",
   "currency.USD": "US dollar",
   "currency.EUR": "Euro",
   "currency.RUB": "Russian rouble",

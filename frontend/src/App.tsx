@@ -16,7 +16,15 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { api, initials, messageOf, monthName, today } from "./api";
+import {
+  api,
+  dateFull,
+  decimal,
+  initials,
+  messageOf,
+  monthName,
+  today,
+} from "./api";
 import { ErrorNotice, Loading, MonthPicker } from "./components";
 import AuthPage from "./AuthPage";
 import ActionModal, { type Action } from "./ActionModal";
@@ -28,6 +36,13 @@ import Goals from "./Goals";
 import Household from "./Household";
 import { ThemeToggle } from "./theme";
 import { LanguageSwitch, useI18n, type Key } from "./i18n";
+import {
+  CurrencySwitch,
+  currencySymbols,
+  savedCurrency,
+  setDisplay,
+  type Rates,
+} from "./currency";
 import type {
   Category,
   ExpensePage,
@@ -66,6 +81,11 @@ export default function App() {
   const [revision, setRevision] = useState(0);
   const [action, setAction] = useState<Action | null>(null);
   const [toast, setToast] = useState("");
+  const [currency, setCurrency] = useState(savedCurrency);
+  const [rates, setRates] = useState<Rates | null>(null);
+  const [ratesFailed, setRatesFailed] = useState(false);
+  // Set before anything below renders an amount.
+  const display = setDisplay(currency, rates);
   const family = session?.families.find((item) => item.id === familyId);
   const key = `${familyId}:${month}`;
   const workspace = data?.key === key ? data : null;
@@ -139,6 +159,28 @@ export default function App() {
       window.removeEventListener("focus", update);
     };
   }, [session]);
+  const userId = session?.user.id;
+  useEffect(() => {
+    if (!userId) return;
+    let active = true;
+    const load = () =>
+      api<Rates>("/rates")
+        .then((value) => {
+          if (!active) return;
+          setRates(value);
+          setRatesFailed(false);
+        })
+        .catch(() => {
+          if (active) setRatesFailed(true);
+        });
+    load();
+    // Official rates change once a day; a long-open tab still picks them up.
+    const interval = window.setInterval(load, 30 * 60 * 1000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [userId]);
   useEffect(() => {
     if (toast) {
       const timeout = window.setTimeout(() => setToast(""), 6500);
@@ -358,6 +400,9 @@ export default function App() {
               <p>{t(`title.${view}Sub` as Key, { family: family.name })}</p>
             </div>
             <div className="heading-actions">
+              {view !== "household" && (
+                <CurrencySwitch rates={rates} onChange={setCurrency} />
+              )}
               {monthly && (
                 <MonthPicker
                   month={month}
@@ -393,6 +438,16 @@ export default function App() {
               retry={() => setRevision((value) => value + 1)}
             />
           )}
+          {display.code !== "KZT" && rates && view !== "household" && (
+            <div className="info-notice">
+              {t("currency.notice", {
+                name: t(`currency.${display.code}` as Key),
+                date: dateFull(rates.as_of),
+                symbol: currencySymbols[display.code],
+                rate: decimal(display.rate),
+              })}
+            </div>
+          )}
           {workspace ? (
             <>
               <div className="mobile-period">{monthly && monthName(month)}</div>
@@ -403,6 +458,8 @@ export default function App() {
                   month={month}
                   onAction={setAction}
                   navigate={navigate}
+                  rates={rates}
+                  ratesFailed={ratesFailed}
                 />
               )}
               {view === "transactions" && (

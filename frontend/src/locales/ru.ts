@@ -411,6 +411,10 @@ const ru: Record<keyof typeof en, string> = {
   "rates.week": "за неделю",
   "rates.same": "Без изменений",
   "rates.unavailable": "Курсы валют сейчас недоступны.",
+  "currency.label": "Валюта отображения",
+  "currency.notice":
+    "Суммы показаны в валюте «{name}» по курсу Нацбанка на {date}: 1 {symbol} = {rate} ₸. Старые записи пересчитаны по этому же курсу, а вводятся суммы по-прежнему в тенге.",
+  "currency.KZT": "Тенге",
   "currency.USD": "Доллар США",
   "currency.EUR": "Евро",
   "currency.RUB": "Российский рубль",

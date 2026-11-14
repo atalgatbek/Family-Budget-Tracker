@@ -9,12 +9,21 @@ import {
   YAxis,
 } from "recharts";
 import { money, monthInText } from "./api";
+import { getDisplay } from "./currency";
 import { useI18n } from "./i18n";
 import type { Summary } from "./types";
 
 export function SpendingChart({ summary }: { summary: Summary }) {
   const { t } = useI18n();
   const unit = t("chart.thousand");
+  // The points stay in tenge; only the axis labels and tooltip are converted.
+  const axisLabel = (kzt: number) => {
+    const value = kzt / getDisplay().rate;
+    if (!value) return "0";
+    return value >= 10000
+      ? `${Math.round(value / 100) / 10}${unit}`
+      : String(Math.round(value));
+  };
   const days = new Date(
     Number(summary.month.slice(0, 4)),
     Number(summary.month.slice(5)),
@@ -80,7 +89,7 @@ export function SpendingChart({ summary }: { summary: Summary }) {
             axisLine={false}
             tickLine={false}
             tick={{ fontSize: 10, fill: "var(--chart-tick)" }}
-            tickFormatter={(v) => (v ? `${v / 1000}${unit}` : "0")}
+            tickFormatter={axisLabel}
           />
           <Tooltip
             formatter={(value, name) => [

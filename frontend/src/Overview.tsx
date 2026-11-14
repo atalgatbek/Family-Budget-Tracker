@@ -7,9 +7,10 @@ import {
   TrendingUp,
   Wallet,
 } from "lucide-react";
-import { dateLabel, initials, money, monthOnly, number } from "./api";
+import { dateLabel, initials, money, monthOnly } from "./api";
+import { getDisplay, type Rates } from "./currency";
 import { useI18n } from "./i18n";
-import { BudgetRow, CategoryIcon, Empty } from "./components";
+import { Amount, BudgetRow, CategoryIcon, Empty } from "./components";
 import { SpendingChart } from "./Charts";
 import StatusPanel from "./Status";
 import RatesPanel from "./Rates";
@@ -138,7 +139,11 @@ export default function Overview({
   month,
   onAction,
   navigate,
+  rates,
+  ratesFailed,
 }: {
+  rates: Rates | null;
+  ratesFailed: boolean;
   data: Workspace;
   family: Family;
   month: string;
@@ -162,8 +167,7 @@ export default function Overview({
             <Wallet size={18} />
           </div>
           <div className="stat-value">
-            {number(summary.remaining_kzt)}
-            <span>₸</span>
+            <Amount value={summary.remaining_kzt} />
           </div>
           <div className="balance-meter">
             <div style={{ width: `${Math.min(percentage, 100)}%` }} />
@@ -183,8 +187,7 @@ export default function Overview({
             </span>
           </div>
           <div className="stat-value">
-            {number(summary.spent_kzt)}
-            <span>₸</span>
+            <Amount value={summary.spent_kzt} />
           </div>
           <div className="stat-foot">
             <span>{t("stat.spentFoot")}</span>
@@ -198,8 +201,7 @@ export default function Overview({
             </span>
           </div>
           <div className="stat-value">
-            {number(summary.income_kzt)}
-            <span>₸</span>
+            <Amount value={summary.income_kzt} />
           </div>
           <div className="stat-foot">
             <button
@@ -213,7 +215,7 @@ export default function Overview({
         </div>
       </section>
       <StatusPanel summary={summary} month={month} navigate={navigate} />
-      <RatesPanel />
+      <RatesPanel data={rates} failed={ratesFailed} />
       <div className="overview-grid">
         <div className="overview-main">
           <section className="panel spending-panel">
@@ -233,7 +235,7 @@ export default function Overview({
               <span>
                 <i className="legend-budget" /> {t("chart.pace")}
               </span>
-              <small>KZT</small>
+              <small>{getDisplay().code}</small>
             </div>
             <SpendingChart summary={summary} />
             <div className="chart-note">

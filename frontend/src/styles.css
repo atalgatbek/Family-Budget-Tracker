@@ -3084,3 +3084,53 @@ table tfoot td {
     width: 56px;
   }
 }
+
+/* Display currency switch */
+.currency-switch {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 2px;
+  height: 41px;
+  padding: 0 4px;
+  border: 1px solid light-dark(#e1e5d9, #2e3c33);
+  border-radius: 7px;
+  background: light-dark(#fff, #171e1a);
+}
+.currency-switch button {
+  width: 30px;
+  height: 31px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: light-dark(#7c8572, #99a08e);
+  font-family: "Manrope", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.currency-switch button:hover:not(:disabled) {
+  background: light-dark(#f3f5ee, #202a24);
+  color: light-dark(#343a32, #e6efe2);
+}
+.currency-switch button[aria-pressed="true"] {
+  background: light-dark(#e6ecdd, #2c6650);
+  color: light-dark(#244f3f, #e6efe2);
+}
+.currency-switch button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+.stat-value > span.before {
+  margin: 0 4px 0 0;
+}
+@media (max-width: 760px) {
+  .heading-actions {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+  .currency-switch {
+    height: 39px;
+  }
+}

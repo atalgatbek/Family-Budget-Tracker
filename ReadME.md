@@ -96,6 +96,7 @@ The overview shows official National Bank of Kazakhstan rates for USD, EUR, RUB,
 - A published daily rate does not change, so each day is requested once and kept in the `exchange_rate` table (migration `004`). Later page loads are served from the database.
 - If the bank cannot be reached, the last stored rates are shown with their date and the API waits ten minutes before trying again. With nothing stored yet, the panel says the rates are unavailable.
 - These are official daily rates, not live exchange-office prices. Green means the currency became more expensive in tenge over the week, red means it became cheaper.
+- A switch next to the month picker (₸ $ € ₽ ¥) shows every amount on the site in the chosen currency at the latest stored rate. This only changes the display: amounts are stored and entered in tenge, CSV exports stay in tenge, and older entries are converted at the same current rate, which the page states in a notice. The choice is remembered in the browser.
 
 ## Report requirements
 

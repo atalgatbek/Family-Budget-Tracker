@@ -1,3 +1,4 @@
+import { currencySymbols, getDisplay } from "./currency";
 import { getLang, getLocale } from "./i18n";
 
 export class ApiError extends Error {
@@ -84,7 +85,33 @@ export const decimal = (value: number) =>
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);
-export const money = (amount: number) => `${number(amount)} ₸`;
+/**
+ * A stored tenge amount in the currency chosen for display. Other currencies
+ * get cents below 100 and whole units above; English puts the sign first.
+ */
+export function amountParts(amount: number) {
+  const { code, rate } = getDisplay();
+  if (code === "KZT")
+    return { text: number(amount), symbol: "₸", before: false };
+  const value = amount / rate;
+  const digits = Math.abs(value) < 100 ? 2 : 0;
+  const text = new Intl.NumberFormat(getLang() === "en" ? "en-US" : "ru-RU", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(Math.abs(value));
+  return {
+    text: `${value < 0 ? "−" : ""}${text}`,
+    symbol: currencySymbols[code],
+    before: getLang() === "en",
+  };
+}
+export const money = (amount: number) => {
+  const { text, symbol, before } = amountParts(amount);
+  if (!before) return `${text} ${symbol}`;
+  return text.startsWith("−")
+    ? `−${symbol}${text.slice(1)}`
+    : `${symbol}${text}`;
+};
 export const today = () =>
   new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Almaty",

@@ -16,7 +16,7 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import { money, monthName } from "./api";
+import { amountParts, money, monthName } from "./api";
 import { useI18n } from "./i18n";
 import { StatusPill, categoryLevel } from "./Status";
 import type { BudgetCategory } from "./types";
@@ -78,6 +78,22 @@ export function CategoryIcon({
     >
       <Icon size={small ? 17 : 20} strokeWidth={1.7} />
     </span>
+  );
+}
+
+/** A large amount with its currency sign as a separate, smaller element. */
+export function Amount({ value }: { value: number }) {
+  const { text, symbol, before } = amountParts(value);
+  return before ? (
+    <>
+      <span className="before">{symbol}</span>
+      {text}
+    </>
+  ) : (
+    <>
+      {text}
+      <span>{symbol}</span>
+    </>
   );
 }
 

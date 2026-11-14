@@ -1,16 +1,7 @@
-import { useEffect, useState } from "react";
 import { Minus, TrendingDown, TrendingUp } from "lucide-react";
-import { api, dateFull, decimal } from "./api";
+import { dateFull, decimal } from "./api";
+import type { Rates } from "./currency";
 import { useI18n, type Key } from "./i18n";
-
-type Rate = {
-  code: string;
-  rate: number;
-  week_ago: number;
-  change_percent: number;
-  history: { date: string; rate: number }[];
-};
-type Rates = { as_of: string; compared_with: string; rates: Rate[] };
 
 // Shown in this order; the colours reuse the category palette.
 const currencies = [
@@ -64,19 +55,14 @@ function Sparkline({ values }: { values: number[] }) {
   );
 }
 
-export default function RatesPanel() {
+export default function RatesPanel({
+  data,
+  failed,
+}: {
+  data: Rates | null;
+  failed: boolean;
+}) {
   const { t } = useI18n();
-  const [data, setData] = useState<Rates | null>(null);
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    const controller = new AbortController();
-    api<Rates>("/rates", { signal: controller.signal })
-      .then(setData)
-      .catch(() => {
-        if (!controller.signal.aborted) setFailed(true);
-      });
-    return () => controller.abort();
-  }, []);
   return (
     <section className="panel rates-panel" aria-label={t("rates.aria")}>
       <div className="rates-head">
@@ -85,7 +71,7 @@ export default function RatesPanel() {
           <small>{t("rates.source", { date: dateFull(data.as_of) })}</small>
         )}
       </div>
-      {failed ? (
+      {failed && !data ? (
         <p className="rates-empty">{t("rates.unavailable")}</p>
       ) : (
         <div className="rate-tiles">
