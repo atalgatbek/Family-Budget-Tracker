@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import {
   ArrowRight,
+  ArrowUpRight,
   ChartNoAxesCombined,
   Eye,
   EyeOff,
@@ -87,7 +88,9 @@ export default function AuthPage({
             </div>
             <div className="paper-bottom">
               {t("auth.paperBottom")}
-              <span>{"↗\uFE0E"}</span>
+              <span>
+                <ArrowUpRight size={24} strokeWidth={1.6} />
+              </span>
             </div>
           </div>
         </div>

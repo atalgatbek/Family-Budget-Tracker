@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ArrowRightLeft,
+  ArrowUpRight,
   BarChart3,
   Check,
   ChevronDown,
@@ -314,7 +315,7 @@ export default function App() {
         <div className="sidebar-bottom">
           <div className="sidebar-note">
             <span className="note-drawing" aria-hidden="true">
-              {"↗\uFE0E"}
+              <ArrowUpRight size={54} strokeWidth={1.4} />
             </span>
             <strong>
               {t("app.noteTitle1")}
