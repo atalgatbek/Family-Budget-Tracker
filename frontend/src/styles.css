@@ -221,6 +221,12 @@ p {
   flex-direction: column;
   padding: 34px 20px 0;
   z-index: 30;
+  /* On short screens the menu scrolls instead of cutting off its bottom. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.sidebar > * {
+  flex-shrink: 0;
 }
 .brand {
   display: flex;

@@ -87,7 +87,7 @@ export default function AuthPage({
             </div>
             <div className="paper-bottom">
               {t("auth.paperBottom")}
-              <span>↗</span>
+              <span>{"↗\uFE0E"}</span>
             </div>
           </div>
         </div>

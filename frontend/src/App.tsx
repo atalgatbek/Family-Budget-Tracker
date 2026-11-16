@@ -314,7 +314,7 @@ export default function App() {
         <div className="sidebar-bottom">
           <div className="sidebar-note">
             <span className="note-drawing" aria-hidden="true">
-              ↗
+              {"↗\uFE0E"}
             </span>
             <strong>
               {t("app.noteTitle1")}
