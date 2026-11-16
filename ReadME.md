@@ -32,6 +32,33 @@ docker compose down
 
 Stopping preserves data. Keep `.env` out of Git. For a public deployment, use HTTPS at your reverse proxy, set `COOKIE_SECURE=true`, set `ALLOWED_ORIGINS` to your actual domain, and back up both named volumes. Set `WEB_PORT` to change port 8080. Demo seeding is explicit; omit it for a real deployment.
 
+## Vercel deployment
+
+`vercel.json` deploys this repository as one Vercel project with two [services](https://vercel.com/docs/services) on a shared domain:
+
+| Service | Root | Public paths |
+| --- | --- | --- |
+| `backend` (FastAPI, Python 3.13) | `backend/` | `/api/*`, `/docs`, `/openapi.json` |
+| `frontend` (Vite, static) | `frontend/` | everything else |
+
+A service receives the original request path, so the API keeps its `/api` prefix and the frontend keeps calling relative `/api/...` URLs. There are no service bindings: the frontend is a static bundle, the browser reaches the API through the public `/api` rewrite, and the API calls no other service.
+
+Set these environment variables in the Vercel project:
+
+- `DATABASE_URL`: a hosted PostgreSQL database. `postgres://` and `postgresql://` URLs are accepted and used through psycopg 3.
+- `JWT_SECRET`: a random secret of at least 32 characters.
+- `ALLOWED_ORIGINS` (optional): only for extra custom domains. The deployment's own URLs (`VERCEL_URL`, `VERCEL_BRANCH_URL`, `VERCEL_PROJECT_PRODUCTION_URL`) are allowed automatically, and the session cookie is marked `Secure` on production and preview deployments.
+
+Things that differ from the Docker setup:
+
+- Migrations are not run automatically. Run them once against the hosted database from your machine, and again after pulling new migrations: `DATABASE_URL="<hosted url>" make migrate`. Optional demo data: `DATABASE_URL="<hosted url>" make seed`.
+- Receipt photos are not kept. Vercel Functions have no persistent disk, and a request body is limited to 4.5 MB, so receipt upload needs object storage before it can be used there.
+- The Nginx `Content-Security-Policy` is not applied; `X-Content-Type-Options`, `X-Frame-Options`, and `Referrer-Policy` are set for the frontend in `vercel.json`.
+- Dependencies are installed from `backend/requirements.txt`, not from `requirements.lock`.
+- The sign-in rate limit and the exchange-rate retry pause are kept in memory per function instance.
+
+Local check with the Vercel CLI: `vercel dev` runs both services behind one port (default **http://localhost:3000**, already listed in `.env.example`). The CLI may rewrite `frontend/package-lock.json`; do not commit that change.
+
 ## Demo login
 
 | Email | Role |

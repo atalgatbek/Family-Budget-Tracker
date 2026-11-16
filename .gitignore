@@ -13,3 +13,4 @@ backend/uploads/
 .idea/
 coverage.xml
 .coverage
+.vercel

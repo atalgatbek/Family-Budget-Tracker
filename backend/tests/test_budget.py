@@ -572,3 +572,45 @@ async def test_exchange_rates_cache_change_and_outage(client, household, monkeyp
     async with engine.begin() as connection:
         await connection.execute(text("TRUNCATE exchange_rate"))
     rates.retry_at.clear()
+
+
+def test_settings_for_a_vercel_deployment(monkeypatch):
+    from functools import partial
+    from app import config
+
+    # A deployment has no .env file; read only real environment variables.
+    Settings = partial(config.Settings, _env_file=None)
+
+    for name in ["VERCEL_ENV", "VERCEL_URL", "VERCEL_BRANCH_URL", "COOKIE_SECURE"]:
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.delenv("VERCEL_PROJECT_PRODUCTION_URL", raising=False)
+    monkeypatch.setenv("ALLOWED_ORIGINS", "http://localhost:5173, ")
+    local = Settings()
+    assert local.origins == ["http://localhost:5173"]
+    assert local.cookie_secure is False
+
+    monkeypatch.setenv("VERCEL_URL", "budget-abc123.vercel.app")
+    monkeypatch.setenv("VERCEL_BRANCH_URL", "budget-git-main.vercel.app")
+    monkeypatch.setenv("VERCEL_PROJECT_PRODUCTION_URL", "budget.example.com")
+    # `vercel dev` sets the hostnames too, but the site is not on HTTPS there.
+    monkeypatch.setenv("VERCEL_ENV", "development")
+    assert Settings().origins == ["http://localhost:5173"]
+    assert Settings().cookie_secure is False
+
+    monkeypatch.setenv("VERCEL_ENV", "preview")
+    deployed = Settings()
+    assert deployed.origins == [
+        "http://localhost:5173",
+        "https://budget-abc123.vercel.app",
+        "https://budget-git-main.vercel.app",
+        "https://budget.example.com",
+    ]
+    assert deployed.cookie_secure is True
+    monkeypatch.setenv("COOKIE_SECURE", "false")
+    assert Settings().cookie_secure is False
+
+    for given in ["postgres://u:p@host/db?sslmode=require", "postgresql://u:p@host/db"]:
+        url = Settings(database_url=given).database_url
+        assert url.startswith("postgresql+psycopg://u:p@host/db")
+    kept = "postgresql+psycopg://u:p@host/db"
+    assert Settings(database_url=kept).database_url == kept
