@@ -14,6 +14,7 @@ import { Amount, BudgetRow, CategoryIcon, Empty } from "./components";
 import { SpendingChart } from "./Charts";
 import StatusPanel from "./Status";
 import RatesPanel from "./Rates";
+import { QuickActions, quickActions } from "./QuickActions";
 import type { Action } from "./ActionModal";
 import type { Expense, Family, Workspace } from "./types";
 
@@ -152,6 +153,7 @@ export default function Overview({
 }) {
   const { t, ts } = useI18n();
   const { summary } = data;
+  const quick = quickActions({ family, goals: data.goals, onAction, navigate });
   const percentage = summary.planned_kzt
     ? Math.round((summary.spent_kzt / summary.planned_kzt) * 100)
     : 0;
@@ -214,6 +216,7 @@ export default function Overview({
           </div>
         </div>
       </section>
+      <QuickActions items={quick} />
       <StatusPanel summary={summary} month={month} navigate={navigate} />
       <RatesPanel data={rates} failed={ratesFailed} />
       <div className="overview-grid">

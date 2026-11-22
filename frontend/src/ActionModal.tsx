@@ -26,7 +26,7 @@ export type Action =
   | { kind: "delete-expense"; expense: Expense }
   | { kind: "delete-income"; income: Income }
   | { kind: "goal"; goal?: Goal }
-  | { kind: "contribute"; goal: Goal }
+  | { kind: "contribute"; goal?: Goal }
   | { kind: "delete-goal"; goal: Goal };
 
 export default function ActionModal({
@@ -77,7 +77,9 @@ export default function ActionModal({
     "delete-expense": t("modal.deleteExpense"),
     "delete-income": t("modal.deleteIncome"),
     goal: t(goal ? "modal.goalEdit" : "modal.goalNew"),
-    contribute: t("modal.contribute", { name: goal?.name ?? "" }),
+    contribute: goal
+      ? t("modal.contribute", { name: goal.name })
+      : t("modal.contributeAny"),
     "delete-goal": t("modal.deleteGoal"),
   };
   const subtitles: Partial<Record<Action["kind"], string>> = {
@@ -87,7 +89,9 @@ export default function ActionModal({
     limit: t("modal.subLimit"),
     category: t("modal.subCategory"),
     goal: t("modal.subGoal"),
-    contribute: goal ? (goalHint(goal, t) ?? t("goals.reached")) : "",
+    contribute: goal
+      ? (goalHint(goal, t) ?? t("goals.reached"))
+      : t("modal.contributeAnySub"),
   };
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -213,8 +217,9 @@ export default function ActionModal({
         else await send(`${base}/goals`, body);
         onSaved(t(action.goal ? "toast.goalUpdated" : "toast.goalCreated"));
       } else if (action.kind === "contribute") {
+        const goalId = action.goal?.id ?? Number(values.goal_id);
         const result = await send<Goal>(
-          `${base}/goals/${action.goal.id}/contributions`,
+          `${base}/goals/${goalId}/contributions`,
           { amount_kzt: Number(values.amount_kzt) },
         );
         onSaved(
@@ -552,7 +557,31 @@ export default function ActionModal({
           )}
           {action.kind === "contribute" && (
             <>
-              {amount("amount_kzt", t("form.contributeAmount"))}
+              {!action.goal && (
+                <label>
+                  {t("form.chooseGoal")}
+                  <select
+                    name="goal_id"
+                    defaultValue={data.goals[0]?.id}
+                    required
+                  >
+                    {data.goals.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {amount(
+                "amount_kzt",
+                t("form.contributeAmount"),
+                undefined,
+                10000000,
+                {
+                  focus: Boolean(action.goal),
+                },
+              )}
               <p className="form-hint">{t("form.goalHint")}</p>
             </>
           )}
