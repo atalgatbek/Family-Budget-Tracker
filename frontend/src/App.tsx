@@ -33,6 +33,7 @@ import Overview from "./Overview";
 import Transactions from "./Transactions";
 import Budgets from "./Budgets";
 import Reports from "./Reports";
+import { ActionSheet, TabBar, quickActions } from "./QuickActions";
 import Goals from "./Goals";
 import Household from "./Household";
 import { ThemeToggle } from "./theme";
@@ -77,6 +78,7 @@ export default function App() {
   const [month, setMonth] = useState(today().slice(0, 7));
   const [view, setView] = useState(getView);
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [sheet, setSheet] = useState(false);
   const [data, setData] = useState<(Workspace & { key: string }) | null>(null);
   const [error, setError] = useState("");
   const [revision, setRevision] = useState(0);
@@ -242,6 +244,12 @@ export default function App() {
       </div>
     );
   const viewTitle = t(`nav.${view}` as Key);
+  const quick = quickActions({
+    family,
+    goals: workspace?.goals ?? [],
+    onAction: setAction,
+    navigate,
+  });
   // Household and goals are not tied to a month.
   const monthly = view !== "household" && view !== "goals";
   const firstName = session.user.full_name.split(" ")[0];
@@ -413,9 +421,9 @@ export default function App() {
                   }}
                 />
               )}
-              {(view === "overview" || view === "transactions") && (
+              {view === "transactions" && (
                 <button
-                  className="button primary"
+                  className="button primary add-expense"
                   onClick={() => setAction({ kind: "expense" })}
                   disabled={!workspace}
                 >
@@ -511,6 +519,10 @@ export default function App() {
           </footer>
         </main>
       </div>
+      <TabBar view={view} navigate={navigate} onAdd={() => setSheet(true)} />
+      {sheet && workspace && (
+        <ActionSheet items={quick} onClose={() => setSheet(false)} />
+      )}
       {action && workspace && (
         <ActionModal
           action={action}

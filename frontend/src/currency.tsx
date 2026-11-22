@@ -1,3 +1,6 @@
+import { useEffect, useRef, useState } from "react";
+import { Check, ChevronDown } from "lucide-react";
+import { decimal } from "./api";
 import { useI18n, type Key } from "./i18n";
 
 export const currencyCodes = ["KZT", "USD", "EUR", "RUB", "CNY"] as const;
@@ -45,6 +48,7 @@ export function setDisplay(code: CurrencyCode, rates: Rates | null) {
   return display;
 }
 
+/** One button that opens a list of currencies with today's rate. */
 export function CurrencySwitch({
   rates,
   onChange,
@@ -53,34 +57,72 @@ export function CurrencySwitch({
   onChange: (code: CurrencyCode) => void;
 }) {
   const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const current = display.code;
+  useEffect(() => {
+    if (!open) return;
+    const outside = (event: PointerEvent) => {
+      if (!box.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", outside);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", outside);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [open]);
+  function choose(code: CurrencyCode) {
+    try {
+      localStorage.setItem("currency", code);
+    } catch {
+      /* The choice still applies for this visit. */
+    }
+    onChange(code);
+    setOpen(false);
+  }
   return (
-    <div
-      className="currency-switch"
-      role="group"
-      aria-label={t("currency.label")}
-    >
-      {currencyCodes.map((code) => (
-        <button
-          type="button"
-          key={code}
-          title={t(`currency.${code}` as Key)}
-          aria-label={t(`currency.${code}` as Key)}
-          aria-pressed={display.code === code}
-          disabled={
-            code !== "KZT" && !rates?.rates.some((row) => row.code === code)
-          }
-          onClick={() => {
-            try {
-              localStorage.setItem("currency", code);
-            } catch {
-              /* The choice still applies for this visit. */
-            }
-            onChange(code);
-          }}
+    <div className="currency-menu" ref={box}>
+      <button
+        type="button"
+        className="currency-trigger"
+        aria-haspopup="true"
+        aria-expanded={open}
+        aria-label={`${t("currency.label")}: ${t(`currency.${current}` as Key)}`}
+        onClick={() => setOpen(!open)}
+      >
+        <b>{currencySymbols[current]}</b>
+        <span>{t(`currency.${current}` as Key)}</span>
+        <ChevronDown size={14} />
+      </button>
+      {open && (
+        <div
+          className="currency-list"
+          role="group"
+          aria-label={t("currency.label")}
         >
-          {currencySymbols[code]}
-        </button>
-      ))}
+          {currencyCodes.map((code) => {
+            const rate = rates?.rates.find((row) => row.code === code)?.rate;
+            return (
+              <button
+                type="button"
+                key={code}
+                aria-pressed={current === code}
+                disabled={code !== "KZT" && !rate}
+                onClick={() => choose(code)}
+              >
+                <b>{currencySymbols[code]}</b>
+                <span>{t(`currency.${code}` as Key)}</span>
+                {rate ? <small>{decimal(rate)} ₸</small> : null}
+                {current === code && <Check size={14} />}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
