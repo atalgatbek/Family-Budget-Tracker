@@ -1,10 +1,13 @@
+import secrets
+from datetime import timedelta
 from fastapi import APIRouter, HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
-from ..auth import Admin, CurrentUser, DB, Member
-from ..models import Category, Family, FamilyMember, User
+from ..auth import Admin, CurrentUser, DB, Member, now
+from ..models import Category, Family, FamilyMember, PasswordReset, User
 from ..schemas import CategoryInput, FamilyInput, MemberInput
 from ..services import category_for, families_for
+from .auth import code_digest
 
 router = APIRouter(prefix="/families", tags=["Households"])
 
@@ -77,6 +80,54 @@ async def add_member(family_id: int, payload: MemberInput, db: DB, member: Admin
         await db.rollback()
         raise HTTPException(409, "This person already belongs to your household.")
     return {"id": user.id, "full_name": user.full_name, "role": payload.role}
+
+
+# Letters and digits that are hard to confuse when read aloud or retyped.
+CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+RESET_MINUTES = 30
+
+
+@router.post("/{family_id}/members/{user_id}/reset-code", status_code=201)
+async def issue_reset_code(family_id: int, user_id: int, db: DB, member: Admin):
+    """Gives a member a one-time code to set a new password, without email.
+
+    Only ordinary members can be reset, and only if they share no other
+    household with other people, so an admin cannot use a reset to get into
+    a household they do not belong to.
+    """
+    target = await db.get(FamilyMember, (family_id, user_id))
+    if target is None:
+        raise HTTPException(404, "Household member not found.")
+    other_households = select(FamilyMember.family_id).where(
+        FamilyMember.user_id == user_id, FamilyMember.family_id != family_id
+    )
+    shares_other = await db.scalar(
+        select(FamilyMember.user_id).where(
+            FamilyMember.family_id.in_(other_households),
+            FamilyMember.user_id != user_id,
+        )
+    )
+    if user_id == member.user_id or target.role != "Member" or shares_other:
+        raise HTTPException(
+            403,
+            "Admins can reset passwords only for members who belong to no other household.",
+        )
+    code = "".join(secrets.choice(CODE_ALPHABET) for _ in range(8))
+    # Older unused codes stop working when a new one is issued.
+    await db.execute(
+        update(PasswordReset)
+        .where(PasswordReset.user_id == user_id, PasswordReset.used_at.is_(None))
+        .values(used_at=now())
+    )
+    reset = PasswordReset(
+        user_id=user_id,
+        created_by=member.user_id,
+        code_hash=code_digest(code),
+        expires_at=now() + timedelta(minutes=RESET_MINUTES),
+    )
+    db.add(reset)
+    await db.commit()
+    return {"code": f"{code[:4]}-{code[4:]}", "expires_at": reset.expires_at}
 
 
 @router.get("/{family_id}/categories")

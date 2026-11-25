@@ -1,31 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  ArrowRightLeft,
-  ArrowUpRight,
-  BarChart3,
-  Check,
-  ChevronDown,
-  House,
-  LayoutGrid,
-  LogOut,
-  Menu,
-  Plus,
-  RefreshCw,
-  ShieldCheck,
-  SlidersHorizontal,
-  Target,
-  Users,
-  X,
-} from "lucide-react";
-import {
-  api,
-  dateFull,
-  decimal,
-  initials,
-  messageOf,
-  monthName,
-  today,
-} from "./api";
+import { Check, House, Plus, X } from "lucide-react";
+import { api, dateFull, decimal, messageOf, monthName, today } from "./api";
 import { ErrorNotice, Loading, MonthPicker } from "./components";
 import AuthPage from "./AuthPage";
 import ActionModal, { type Action } from "./ActionModal";
@@ -35,9 +10,10 @@ import Budgets from "./Budgets";
 import Reports from "./Reports";
 import { ActionSheet, TabBar, quickActions } from "./QuickActions";
 import Goals from "./Goals";
+import Requests from "./Requests";
+import { Sidebar, Topbar, navigation } from "./Layout";
 import Household from "./Household";
-import { ThemeToggle } from "./theme";
-import { LanguageSwitch, useI18n, type Key } from "./i18n";
+import { useI18n, type Key } from "./i18n";
 import {
   CurrencySwitch,
   currencySymbols,
@@ -51,19 +27,12 @@ import type {
   Goal,
   Income,
   Member,
+  PurchaseRequest,
   Session,
   Summary,
   Workspace,
 } from "./types";
 
-const navigation = [
-  { id: "overview", icon: LayoutGrid },
-  { id: "transactions", icon: ArrowRightLeft },
-  { id: "budgets", icon: SlidersHorizontal },
-  { id: "goals", icon: Target },
-  { id: "reports", icon: BarChart3 },
-  { id: "household", icon: Users },
-];
 const getView = () =>
   navigation.some((item) => item.id === location.hash.slice(1))
     ? location.hash.slice(1)
@@ -87,6 +56,7 @@ export default function App() {
   const [currency, setCurrency] = useState(savedCurrency);
   const [rates, setRates] = useState<Rates | null>(null);
   const [ratesFailed, setRatesFailed] = useState(false);
+  const [expired, setExpired] = useState(false);
   // Set before anything below renders an amount.
   const display = setDisplay(currency, rates);
   const family = session?.families.find((item) => item.id === familyId);
@@ -98,6 +68,7 @@ export default function App() {
     setMonth(value.families[0]?.latest_budget_month ?? today().slice(0, 7));
     setBootError("");
     setData(null);
+    setExpired(false);
   }, []);
   const boot = useCallback(() => {
     setBooting(true);
@@ -120,6 +91,7 @@ export default function App() {
       setSession(null);
       setData(null);
       setAction(null);
+      setExpired(true);
     };
     window.addEventListener("session-expired", expired);
     return () => {
@@ -139,11 +111,40 @@ export default function App() {
       api<Member[]>(`${base}/members`, options),
       api<Income[]>(`${base}/income?month=${month}`, options),
       api<Goal[]>(`${base}/goals`, options),
+      api<PurchaseRequest[]>(`${base}/requests`, options),
+      api<Session>("/auth/me", options),
     ])
-      .then(([summary, recent, categories, members, income, goals]) => {
-        setData({ summary, recent, categories, members, income, goals, key });
-        setError("");
-      })
+      .then(
+        ([
+          summary,
+          recent,
+          categories,
+          members,
+          income,
+          goals,
+          requests,
+          me,
+        ]) => {
+          // Household settings (role, auto-approve rule) can change elsewhere.
+          setSession((current) =>
+            current &&
+            JSON.stringify(current.families) === JSON.stringify(me.families)
+              ? current
+              : me,
+          );
+          setData({
+            summary,
+            recent,
+            categories,
+            members,
+            income,
+            goals,
+            requests,
+            key,
+          });
+          setError("");
+        },
+      )
       .catch((error) => {
         if (!controller.signal.aborted) setError(messageOf(error));
       });
@@ -206,12 +207,23 @@ export default function App() {
       setError(messageOf(error));
     }
   }
+  function switchFamily(id: number) {
+    const selected = session?.families.find((item) => item.id === id);
+    if (!selected) return;
+    setFamilyId(selected.id);
+    setMonth(selected.latest_budget_month ?? today().slice(0, 7));
+    setAction(null);
+    setError("");
+  }
+  function signedOut() {
+    setSession(null);
+    setData(null);
+    setAction(null);
+  }
   async function logout() {
     try {
       await api("/auth/logout", { method: "POST" });
-      setSession(null);
-      setData(null);
-      setAction(null);
+      signedOut();
     } catch (error) {
       setError(messageOf(error));
     }
@@ -233,7 +245,7 @@ export default function App() {
         </div>
       </div>
     );
-  if (!session) return <AuthPage onLogin={onLogin} />;
+  if (!session) return <AuthPage onLogin={onLogin} expired={expired} />;
   if (!family)
     return (
       <div className="boot-screen">
@@ -250,8 +262,14 @@ export default function App() {
     onAction: setAction,
     navigate,
   });
-  // Household and goals are not tied to a month.
-  const monthly = view !== "household" && view !== "goals";
+  // Household, goals and requests are not tied to a month.
+  const monthly = !["household", "goals", "requests"].includes(view);
+  const pendingRequests =
+    workspace?.requests.filter(
+      (row) =>
+        row.status === "pending" &&
+        (family.role === "Admin" || row.user_id === session.user.id),
+    ).length ?? 0;
   const firstName = session.user.full_name.split(" ")[0];
   return (
     <div className="app-shell">
@@ -262,141 +280,30 @@ export default function App() {
           onClick={() => setMobileMenu(false)}
         />
       )}
-      <aside className={`sidebar ${mobileMenu ? "is-open" : ""}`}>
-        <a className="brand" href="#overview">
-          <span className="brand-mark">
-            <House size={23} strokeWidth={1.7} />
-          </span>
-          <span>
-            family<span className="brand-light">budget</span>
-            <small>{t("brand.tagline")}</small>
-          </span>
-        </a>
-        <div className="household-switcher">
-          <div className="household-mini-icon">
-            <House size={17} />
-          </div>
-          <div>
-            <small>{t("app.yourHouseholdCaps")}</small>
-            <select
-              aria-label={t("app.switchHousehold")}
-              value={familyId ?? ""}
-              onChange={(e) => {
-                const selected = session.families.find(
-                  (f) => f.id === Number(e.target.value),
-                )!;
-                setFamilyId(selected.id);
-                setMonth(selected.latest_budget_month ?? today().slice(0, 7));
-                setAction(null);
-                setError("");
-              }}
-            >
-              {session.families.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <ChevronDown size={15} />
-        </div>
-        <span className="nav-label">{t("app.navLabel")}</span>
-        <nav aria-label={t("app.mainNav")}>
-          {navigation.map(({ id, icon: Icon }) => (
-            <a
-              key={id}
-              href={`#${id}`}
-              className={view === id ? "active" : ""}
-              aria-current={view === id ? "page" : undefined}
-              onClick={() => navigate(id)}
-            >
-              <Icon size={19} strokeWidth={1.7} />
-              <span>{t(`nav.${id}` as Key)}</span>
-              {id === "transactions" && workspace?.summary.review_count ? (
-                <span className="nav-count" title={t("app.reviewTitle")}>
-                  {workspace.summary.review_count}
-                </span>
-              ) : null}
-            </a>
-          ))}
-        </nav>
-        <div className="sidebar-bottom">
-          <div className="sidebar-note">
-            <span className="note-drawing" aria-hidden="true">
-              <ArrowUpRight size={54} strokeWidth={1.4} />
-            </span>
-            <strong>
-              {t("app.noteTitle1")}
-              <br />
-              {t("app.noteTitle2")}
-            </strong>
-            <p>
-              {t("app.noteText1")}
-              <br />
-              {t("app.noteText2")}
-            </p>
-          </div>
-          <div className="user-block">
-            <span className="avatar">{initials(session.user.full_name)}</span>
-            <div>
-              <strong>{firstName}</strong>
-              <small>
-                {t(
-                  family.role === "Admin" ? "app.roleAdmin" : "app.roleMember",
-                )}
-              </small>
-            </div>
-            <button
-              className="icon-button"
-              aria-label={t("app.signOut")}
-              title={t("app.signOut")}
-              onClick={logout}
-            >
-              <LogOut size={17} />
-            </button>
-          </div>
-        </div>
-      </aside>
+      <Sidebar
+        session={session}
+        family={family}
+        view={view}
+        open={mobileMenu}
+        counts={{
+          transactions: workspace?.summary.review_count ?? 0,
+          requests: pendingRequests,
+        }}
+        navigate={navigate}
+        onSwitchFamily={switchFamily}
+        onLogout={logout}
+      />
       <div className="main-shell">
-        <header className="topbar">
-          <div className="breadcrumbs">
-            <button
-              className="icon-button mobile-toggle"
-              aria-label={t("app.openNav")}
-              onClick={() => setMobileMenu(true)}
-            >
-              <Menu size={20} />
-            </button>
-            <span>{t("app.breadcrumb")}</span>
-            <span className="breadcrumb-slash">/</span>
-            <strong>{viewTitle}</strong>
-          </div>
-          <div className="topbar-right">
-            <span className="privacy-label">
-              <ShieldCheck size={14} /> {t("app.privacy")}
-            </span>
-            <div className="avatar-stack">
-              {workspace?.members.slice(0, 3).map((member) => (
-                <span
-                  className="avatar tiny"
-                  title={member.full_name}
-                  key={member.id}
-                >
-                  {initials(member.full_name)}
-                </span>
-              ))}
-            </div>
-            <LanguageSwitch />
-            <ThemeToggle />
-            <button
-              className="icon-button refresh-button"
-              aria-label={t("app.refresh")}
-              onClick={() => setRevision((value) => value + 1)}
-            >
-              <RefreshCw size={16} />
-            </button>
-          </div>
-        </header>
+        <Topbar
+          title={viewTitle}
+          members={workspace?.members ?? []}
+          familyId={family.id}
+          revision={revision}
+          onMenu={() => setMobileMenu(true)}
+          onRefresh={() => setRevision((value) => value + 1)}
+          navigate={navigate}
+          onSwitchFamily={switchFamily}
+        />
         <main className="main-content">
           <div className="page-heading">
             <div>
@@ -428,6 +335,15 @@ export default function App() {
                   disabled={!workspace}
                 >
                   <Plus size={18} /> {t("action.addExpense")}
+                </button>
+              )}
+              {view === "requests" && (
+                <button
+                  className="button primary"
+                  onClick={() => setAction({ kind: "request" })}
+                  disabled={!workspace}
+                >
+                  <Plus size={18} /> {t("requests.new")}
                 </button>
               )}
               {view === "goals" && family.role === "Admin" && (
@@ -497,6 +413,15 @@ export default function App() {
                   onAction={setAction}
                 />
               )}
+              {view === "requests" && (
+                <Requests
+                  data={workspace}
+                  family={family}
+                  user={session.user}
+                  onAction={setAction}
+                  onChanged={saved}
+                />
+              )}
               {view === "reports" && <Reports summary={workspace.summary} />}
               {view === "household" && (
                 <Household
@@ -531,6 +456,7 @@ export default function App() {
           data={workspace}
           onClose={() => setAction(null)}
           onSaved={saved}
+          onSignedOut={signedOut}
         />
       )}
       {toast && (

@@ -19,8 +19,11 @@ if not make_url(test_url).database.endswith("_test"):
     raise RuntimeError("Tests require a separate database whose name ends in _test.")
 os.environ["DATABASE_URL"] = test_url
 os.environ["UPLOAD_DIR"] = str(ROOT / ".local" / "test-receipts")
+# Generous limits for the suite; the rate limit test lowers them itself.
+for name in ["RATE_LIMIT_REQUESTS", "RATE_LIMIT_WRITES", "RATE_LIMIT_AUTH"]:
+    os.environ[name] = "10000"
 from app.database import engine  # noqa: E402
-from app.main import app, auth_attempts  # noqa: E402
+from app.main import app  # noqa: E402
 
 
 @pytest.fixture(scope="session")
@@ -37,9 +40,8 @@ def migrate():
 async def client():
     async with engine.begin() as connection:
         await connection.execute(
-            text("TRUNCATE family, app_user RESTART IDENTITY CASCADE")
+            text("TRUNCATE family, app_user, rate_limit RESTART IDENTITY CASCADE")
         )
-    auth_attempts.clear()
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as client:

@@ -2,7 +2,7 @@
 
 Built from the **FamilyBudgetTeam_FamilyBudgetTracker_Task09** report, using React + TypeScript, asynchronous FastAPI, SQLAlchemy 2 AsyncSession, psycopg 3, PostgreSQL 17, and Pydantic 2.
 
-Includes overview, expense/income transactions, monthly budgets, savings goals, reports/CSV exports, household management, receipt uploads, and Admin/Member access. The responsive interface uses warm neutral colors, green accents, and locally bundled fonts.
+Includes overview, expense/income transactions, monthly budgets, purchase requests, savings goals, notifications, reports/CSV exports, household management, receipt uploads, and Admin/Member access. The responsive interface uses warm neutral colors, green accents, and locally bundled fonts.
 
 ## Docker deployment
 
@@ -55,7 +55,7 @@ Things that differ from the Docker setup:
 - Receipt photos are not kept. Vercel Functions have no persistent disk, and a request body is limited to 4.5 MB, so receipt upload needs object storage before it can be used there.
 - The Nginx `Content-Security-Policy` is not applied; `X-Content-Type-Options`, `X-Frame-Options`, and `Referrer-Policy` are set for the frontend in `vercel.json`.
 - Dependencies are installed from `backend/requirements.txt`, not from `requirements.lock`.
-- The sign-in rate limit and the exchange-rate retry pause are kept in memory per function instance.
+- The exchange-rate retry pause is kept in memory per function instance; rate limits are shared through the database.
 
 Local check with the Vercel CLI: `vercel dev` runs both services behind one port (default **http://localhost:3000**, already listed in `.env.example`). The CLI may rewrite `frontend/package-lock.json`; do not commit that change.
 
@@ -125,6 +125,45 @@ The overview shows official National Bank of Kazakhstan rates for USD, EUR, RUB,
 - These are official daily rates, not live exchange-office prices. Green means the currency became more expensive in tenge over the week, red means it became cheaper.
 - A switch next to the month picker (₸ $ € ₽ ¥) shows every amount on the site in the chosen currency at the latest stored rate. This only changes the display: amounts are stored and entered in tenge, CSV exports stay in tenge, and older entries are converted at the same current rate, which the page states in a notice. The choice is remembered in the browser.
 
+## Purchase requests
+
+**Requests** is a page in the navigation. A member asks before buying (category, amount, what it is for); an admin approves or rejects it, optionally with a reason. An approved request becomes the member's expense for today, so it counts toward the budget at once.
+
+- **Rule:** an admin can set an amount up to which requests are approved automatically. A request within that amount is still sent for a decision when it would take its category over this month's limit.
+- Pending requests show what is left of the category's limit, and a warning when the request does not fit.
+- A member sees only their own requests and can cancel one while it is pending. A request can be decided only once; the row is locked while it is decided.
+- Migration `006` adds `purchase_request` and the `family.auto_approve_kzt` rule.
+
+## Notifications
+
+A bell in the top bar lists the latest 30 notifications for the signed-in person, across their households, with an unread count. Opening one marks it read and goes to the related page.
+
+They are created on the server for: a new request (to admins), an automatic approval (to admins), an approval or rejection (to the person who asked), a category reaching 85% or passing 100% of its monthly limit (to admins and the person who spent), and a goal being reached (to the whole household). Each limit and goal event is sent once per month and person (`dedupe_key`). Notifications store names and amounts; the browser writes the sentence in the chosen language. Migration `007` adds `notification`.
+
+## Sessions and passwords
+
+- **Limited sessions:** signing in creates a row in `user_session`. The cookie holds a signed token that names the session and expires after 30 minutes without activity; it is renewed while the person keeps using the site, up to 12 hours after sign-in (`SESSION_IDLE_MINUTES`, `SESSION_MAX_HOURS`).
+- **Signing out ends the session on the server**, so a copied cookie stops working. *Sign out everywhere* ends every session of the account.
+- **Change password** asks for the current one and signs out the account's other devices.
+- **Reset without email:** a household admin issues a one-time code for a member from the Household page. The code works once, for 30 minutes, is stored only as a SHA-256 hash, and a new code cancels the old one. The member enters it on the sign-in page (*Forgot your password?*); every session of that account then ends. An admin can reset only members who share no other household with other people, so a reset cannot open a household the admin does not belong to.
+- Migration `005` adds `user_session` and `password_reset`.
+
+## Rate limits
+
+Every API request is counted per signed-in person (or per address when signed out) and minute in the `rate_limit` table (migration `008`), so all server copies share one count:
+
+| Limit | Default per minute | Setting |
+| --- | --- | --- |
+| All requests | 120 | `RATE_LIMIT_REQUESTS` |
+| Changes (POST, PUT, PATCH, DELETE) | 30 | `RATE_LIMIT_WRITES` |
+| Sign-in, registration, password reset (per address) | 10 | `RATE_LIMIT_AUTH` |
+
+Over the limit the API answers `429` with `Retry-After`; every response carries `X-RateLimit-Limit` and `X-RateLimit-Remaining`. `/api/health` is not limited. If the counter itself fails, the request is allowed rather than taking the site down.
+
+The visitor address is read from `X-Real-IP` only behind a trusted proxy: on Vercel (which overwrites the header) and in Compose, where Nginx sets it (`TRUST_PROXY_HEADERS`). Before this, the API behind Nginx saw every visitor as the Nginx address.
+
+`loadtest/load_test.py` measures throughput against a local copy of the server; run it with higher limits to measure raw capacity, or with the defaults to see requests refused.
+
 ## Report requirements
 
 | Requirement | Implementation |
@@ -145,6 +184,10 @@ The overview shows official National Bank of Kazakhstan rates for USD, EUR, RUB,
 | Categories with no spending | LEFT JOIN and COALESCE preserve zero-spend categories |
 | Income | Additional household-scoped `income` table, with idempotency and date validation |
 | Savings goals (addition) | Household-scoped `savings_goal` table with range checks; atomic contributions; Admin-only management |
+| Purchase requests (addition) | `purchase_request` with composite household foreign keys; auto-approve rule; row lock on decision |
+| Notifications (addition) | `notification` per person with a de-duplication key |
+| Sessions and reset codes (addition) | `user_session` with idle and absolute expiry; hashed one-time `password_reset` codes |
+| Rate limits (addition) | `rate_limit` counters per key and minute, shared by all server copies |
 | Exchange rates (addition) | `exchange_rate` cache table keyed by date and currency; rates fetched server-side from the National Bank feed |
 
 Archived categories without a limit or saved spending are omitted from summaries, matching Kids club in the report. Spending without a limit is included and identified. Review entries are editable by their author and admins; move an archived-category entry to an active category to approve it. Spending and balances are computed, never stored.
@@ -158,7 +201,7 @@ make test
 make build
 ```
 
-Integration tests run real migrations and clear only the test database. They cover concurrent duplicate saves, changed-payload conflicts, permissions, family isolation, receipts, invalid amounts/dates, raw-SQL database guards, income idempotency, cross-site requests, transfer/audit behavior, savings-goal permissions and concurrent contributions, and exchange-rate parsing, caching, and outage handling (with the bank feed replaced by a stub).
+Integration tests run real migrations and clear only the test database. They cover concurrent duplicate saves, changed-payload conflicts, permissions, family isolation, receipts, invalid amounts/dates, raw-SQL database guards, income idempotency, cross-site requests, transfer/audit behavior, savings-goal permissions and concurrent contributions, exchange-rate parsing, caching, and outage handling (with the bank feed replaced by a stub), purchase request rules and decisions, notifications, session expiry and revocation, password change and reset, and rate limits.
 
 ## Code map
 

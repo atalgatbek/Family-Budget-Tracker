@@ -5,8 +5,13 @@ export type Family = {
   role: "Admin" | "Member";
   currency: string;
   latest_budget_month: string | null;
+  auto_approve_kzt: number | null;
 };
-export type Session = { user: User; families: Family[] };
+export type Session = {
+  user: User;
+  families: Family[];
+  session_expires_at?: string;
+};
 export type Category = { id: number; name: string; is_active: boolean };
 export type BudgetCategory = Category & {
   limit_kzt: number | null;
@@ -85,4 +90,40 @@ export type Workspace = {
   members: Member[];
   income: Income[];
   goals: Goal[];
+  requests: PurchaseRequest[];
+};
+export type RequestStatus = "pending" | "approved" | "rejected" | "cancelled";
+export type PurchaseRequest = {
+  id: number;
+  user_id: number;
+  user_name: string;
+  category_id: number;
+  category_name: string;
+  amount_kzt: number;
+  note: string;
+  status: RequestStatus;
+  auto: boolean;
+  reason: string;
+  decided_by_name: string | null;
+  decided_at: string | null;
+  created_at: string;
+  expense_id: number | null;
+  left_kzt: number | null;
+  over_limit: boolean;
+};
+export type AppNotification = {
+  id: number;
+  family_id: number;
+  family_name: string;
+  kind:
+    | "request_new"
+    | "request_auto"
+    | "request_approved"
+    | "request_rejected"
+    | "limit_warning"
+    | "limit_over"
+    | "goal_reached";
+  payload: Record<string, string | number>;
+  created_at: string;
+  read: boolean;
 };

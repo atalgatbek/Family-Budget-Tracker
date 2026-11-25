@@ -12,6 +12,11 @@ erDiagram
     MONTHLY_LIMIT ||--o{ LIMIT_CHANGE_LOG : tracks
     APP_USER ||--o{ LIMIT_CHANGE_LOG : changes
     FAMILY ||--o{ SAVINGS_GOAL : saves_for
+    FAMILY ||--o{ PURCHASE_REQUEST : receives
+    FAMILY_MEMBER ||--o{ PURCHASE_REQUEST : asks
+    APP_USER ||--o{ USER_SESSION : signs_in
+    APP_USER ||--o{ PASSWORD_RESET : resets
+    APP_USER ||--o{ NOTIFICATION : receives
     FAMILY {
         int id PK
         varchar name
@@ -82,6 +87,45 @@ erDiagram
         date deadline
         timestamp created_at
     }
+    PURCHASE_REQUEST {
+        int id PK
+        int family_id FK
+        int user_id FK
+        int category_id FK
+        int amount_kzt
+        varchar note
+        varchar status
+        boolean auto
+        int decided_by FK
+        int expense_id FK
+    }
+    USER_SESSION {
+        varchar id PK
+        int user_id FK
+        timestamp expires_at
+        timestamp revoked_at
+    }
+    PASSWORD_RESET {
+        int id PK
+        int user_id FK
+        varchar code_hash
+        timestamp expires_at
+        timestamp used_at
+    }
+    NOTIFICATION {
+        int id PK
+        int user_id FK
+        int family_id FK
+        varchar kind
+        jsonb payload
+        varchar dedupe_key
+        timestamp read_at
+    }
+    RATE_LIMIT {
+        varchar key PK
+        timestamp window_start PK
+        int hits
+    }
     EXCHANGE_RATE {
         date rate_date PK
         char currency PK
@@ -94,3 +138,5 @@ Expense has composite foreign keys `(family_id, user_id)` → membership and `(f
 A savings goal belongs to one household. `saved_kzt` is the source amount for the goal (individual contributions are not kept as rows), so it is stored and changed with a single `UPDATE ... SET saved_kzt = saved_kzt + amount`. Check constraints keep the target between 1 and 1,000,000,000 KZT and the saved amount between 0 and 1,000,000,000 KZT.
 
 `exchange_rate` is a cache of official National Bank of Kazakhstan rates and is not linked to a household. One row is the tenge price of one unit of a currency on one day; the primary key `(rate_date, currency)` prevents duplicates and `rate_kzt` must be positive.
+
+`purchase_request` uses the same composite keys as `expense`, so a request cannot point at another household's member or category; its status is one of pending, approved, rejected, cancelled. `family.auto_approve_kzt` holds the auto-approve amount. `user_session` and `password_reset` belong to an account; reset codes are stored only as SHA-256 hashes. `notification` is unique per person and `dedupe_key`. `rate_limit` is a counter table with no links to other tables.

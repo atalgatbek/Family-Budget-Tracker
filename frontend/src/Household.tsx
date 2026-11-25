@@ -1,4 +1,13 @@
-import { Archive, BadgeCheck, Pencil, Plus, ShieldCheck } from "lucide-react";
+import {
+  KeyRound,
+  LockKeyhole,
+  LogOut,
+  Archive,
+  BadgeCheck,
+  Pencil,
+  Plus,
+  ShieldCheck,
+} from "lucide-react";
 import { dateLabel, initials } from "./api";
 import { CategoryIcon } from "./components";
 import { useI18n } from "./i18n";
@@ -77,6 +86,16 @@ export default function Household({
                   {member.role === "Admin" && <BadgeCheck size={13} />}
                   {ts(member.role)}
                 </span>
+                {admin && member.role === "Member" && member.id !== user.id && (
+                  <button
+                    className="icon-button"
+                    aria-label={t("house.resetFor", { name: member.full_name })}
+                    title={t("house.resetFor", { name: member.full_name })}
+                    onClick={() => onAction({ kind: "reset-code", member })}
+                  >
+                    <KeyRound size={15} />
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -133,6 +152,31 @@ export default function Household({
           <p className="panel-empty-text">{t("house.archiveNote")}</p>
         </section>
       </div>
+      <section className="panel security-panel">
+        <div className="security-text">
+          <span className="quick-icon accent">
+            <LockKeyhole size={17} />
+          </span>
+          <div>
+            <strong>{t("house.securityTitle")}</strong>
+            <p>{t("house.securityText")}</p>
+          </div>
+        </div>
+        <div className="button-group">
+          <button
+            className="button secondary"
+            onClick={() => onAction({ kind: "password" })}
+          >
+            <KeyRound size={15} /> {t("house.changePassword")}
+          </button>
+          <button
+            className="button secondary"
+            onClick={() => onAction({ kind: "logout-all" })}
+          >
+            <LogOut size={15} /> {t("form.logoutAll")}
+          </button>
+        </div>
+      </section>
       <div className="new-household">
         <div>
           <strong>{t("house.anotherTitle")}</strong>
