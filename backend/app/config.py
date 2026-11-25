@@ -32,6 +32,16 @@ class Settings(BaseSettings):
     cookie_secure: bool = Field(default_factory=deployed_on_vercel)
     allowed_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     upload_dir: Path = ROOT / "backend" / "uploads"
+    # A session ends after this long without activity, and in any case
+    # this many hours after sign-in.
+    session_idle_minutes: int = Field(default=30, ge=1, le=1440)
+    session_max_hours: int = Field(default=12, ge=1, le=720)
+    # Requests per minute. Sign-in style requests count per address.
+    rate_limit_requests: int = Field(default=120, ge=1)
+    rate_limit_writes: int = Field(default=30, ge=1)
+    rate_limit_auth: int = Field(default=10, ge=1)
+    # Behind a proxy that sets X-Real-IP (Vercel, or the Compose Nginx).
+    trust_proxy_headers: bool = Field(default_factory=deployed_on_vercel)
 
     @field_validator("database_url")
     @classmethod

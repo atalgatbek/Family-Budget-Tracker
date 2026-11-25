@@ -11,6 +11,7 @@ from starlette.concurrency import run_in_threadpool
 from ..auth import DB, Member
 from ..config import get_settings
 from ..models import Expense
+from ..notifications import check_category_limit
 from ..schemas import ExpenseCreate, ExpenseInput, Month
 from ..services import category_for, expense_for, expense_view, month_bounds
 
@@ -65,6 +66,15 @@ async def list_expenses(
         "page": page,
         "page_size": page_size,
     }
+
+
+async def limit_check(db: DB, row: Expense, actor_id: int) -> None:
+    """Runs after the expense is saved, so a notification never blocks it."""
+    if row.status == "Saved":
+        await check_category_limit(
+            db, row.family_id, row.category_id, row.expense_date, actor_id
+        )
+        await db.commit()
 
 
 async def existing_request(
@@ -130,6 +140,7 @@ async def create_expense(
             409, "The expense could not be saved. Refresh and try again."
         )
     await db.refresh(row)
+    await limit_check(db, row, member.user_id)
     return await expense_view(db, row)
 
 
@@ -145,6 +156,7 @@ async def update_expense(
         row.status = "Needs review"
     await db.commit()
     await db.refresh(row)
+    await limit_check(db, row, member.user_id)
     return await expense_view(db, row)
 
 

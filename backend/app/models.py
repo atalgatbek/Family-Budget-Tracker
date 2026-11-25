@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Any
 from decimal import Decimal
 from sqlalchemy import (
     Boolean,
@@ -10,10 +11,12 @@ from sqlalchemy import (
     Index,
     Integer,
     Numeric,
+    PrimaryKeyConstraint,
     String,
     UniqueConstraint,
     func,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from .database import Base
 
@@ -28,7 +31,15 @@ class Family(Base):
     created_date: Mapped[date] = mapped_column(
         Date, default=date.today, server_default=func.current_date()
     )
-    __table_args__ = (CheckConstraint("currency = 'KZT'", name="family_currency_kzt"),)
+    # Purchase requests up to this amount are approved automatically.
+    auto_approve_kzt: Mapped[int | None] = mapped_column(Integer)
+    __table_args__ = (
+        CheckConstraint("currency = 'KZT'", name="family_currency_kzt"),
+        CheckConstraint(
+            "auto_approve_kzt IS NULL OR auto_approve_kzt BETWEEN 1 AND 10000000",
+            name="family_auto_approve_range",
+        ),
+    )
 
 
 class User(Base):
@@ -188,3 +199,114 @@ class ExchangeRate(Base):
     currency: Mapped[str] = mapped_column(String(3), primary_key=True)
     rate_kzt: Mapped[Decimal] = mapped_column(Numeric(14, 6))
     __table_args__ = (CheckConstraint("rate_kzt > 0", name="exchange_rate_positive"),)
+
+
+class UserSession(Base):
+    """One signed-in browser. The cookie only names it; this row decides."""
+
+    __tablename__ = "user_session"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("app_user.id", ondelete="CASCADE"), index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class PasswordReset(Base):
+    __tablename__ = "password_reset"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("app_user.id", ondelete="CASCADE"), index=True
+    )
+    created_by: Mapped[int] = mapped_column(
+        ForeignKey("app_user.id", ondelete="CASCADE")
+    )
+    code_hash: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class PurchaseRequest(Base):
+    __tablename__ = "purchase_request"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    family_id: Mapped[int] = mapped_column(Integer)
+    user_id: Mapped[int] = mapped_column(Integer)
+    category_id: Mapped[int] = mapped_column(Integer)
+    amount_kzt: Mapped[int] = mapped_column(Integer)
+    note: Mapped[str] = mapped_column(String(160))
+    status: Mapped[str] = mapped_column(
+        String(10), default="pending", server_default="pending"
+    )
+    auto: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    decided_by: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"))
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reason: Mapped[str] = mapped_column(String(160), default="", server_default="")
+    expense_id: Mapped[int | None] = mapped_column(
+        ForeignKey("expense.id", ondelete="SET NULL")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["family_id", "user_id"],
+            ["family_member.family_id", "family_member.user_id"],
+            name="request_family_member_fk",
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["family_id", "category_id"],
+            ["category.family_id", "category.id"],
+            name="request_family_category_fk",
+        ),
+        CheckConstraint(
+            "amount_kzt BETWEEN 1 AND 10000000", name="request_amount_range"
+        ),
+        CheckConstraint(
+            "status IN ('pending', 'approved', 'rejected', 'cancelled')",
+            name="request_status",
+        ),
+        Index("purchase_request_family_status_idx", "family_id", "status"),
+    )
+
+
+class Notification(Base):
+    __tablename__ = "notification"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("app_user.id", ondelete="CASCADE"))
+    family_id: Mapped[int] = mapped_column(ForeignKey("family.id", ondelete="CASCADE"))
+    kind: Mapped[str] = mapped_column(String(30))
+    # Names and amounts only; the browser turns them into a sentence in its language.
+    payload: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, default=dict, server_default="{}"
+    )
+    dedupe_key: Mapped[str | None] = mapped_column(String(120))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        UniqueConstraint("user_id", "dedupe_key", name="notification_dedupe"),
+        Index("notification_user_created_idx", "user_id", "created_at"),
+    )
+
+
+class RateLimit(Base):
+    """Requests counted per key and minute, shared by every server copy."""
+
+    __tablename__ = "rate_limit"
+    key: Mapped[str] = mapped_column(String(120))
+    window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    hits: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    __table_args__ = (
+        PrimaryKeyConstraint("key", "window_start"),
+        Index("rate_limit_window_idx", "window_start"),
+    )

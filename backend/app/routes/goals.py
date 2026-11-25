@@ -3,7 +3,8 @@ from fastapi import APIRouter, HTTPException
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from ..auth import Admin, DB, Member
-from ..models import SavingsGoal
+from ..models import SavingsGoal, User
+from ..notifications import members_of, notify
 from ..schemas import GoalContribution, GoalInput, GoalUpdate, today
 
 router = APIRouter(prefix="/families/{family_id}/goals", tags=["Savings goals"])
@@ -86,6 +87,16 @@ async def contribute(
     if row is None:
         raise HTTPException(404, "Savings goal not found.")
     view = goal_view(row)
+    if row.saved_kzt >= row.target_kzt > row.saved_kzt - payload.amount_kzt:
+        who = await db.get(User, member.user_id)
+        await notify(
+            db,
+            await members_of(db, family_id),
+            family_id,
+            "goal_reached",
+            {"goal": row.name, "target": row.target_kzt, "by": who.full_name},
+            dedupe=f"goal_reached:{row.id}",
+        )
     await db.commit()
     return view
 

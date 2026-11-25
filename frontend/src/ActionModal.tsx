@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent } from "react";
-import { Paperclip } from "lucide-react";
+import { Copy, KeyRound, Paperclip } from "lucide-react";
 import { api, messageOf, money, monthInText, today } from "./api";
 import { useI18n } from "./i18n";
 import { goalHint } from "./Goals";
@@ -11,6 +11,8 @@ import type {
   Family,
   Goal,
   Income,
+  Member,
+  PurchaseRequest,
   Workspace,
 } from "./types";
 
@@ -27,7 +29,12 @@ export type Action =
   | { kind: "delete-income"; income: Income }
   | { kind: "goal"; goal?: Goal }
   | { kind: "contribute"; goal?: Goal }
-  | { kind: "delete-goal"; goal: Goal };
+  | { kind: "delete-goal"; goal: Goal }
+  | { kind: "request" }
+  | { kind: "reject-request"; request: PurchaseRequest }
+  | { kind: "reset-code"; member: Member }
+  | { kind: "password" }
+  | { kind: "logout-all" };
 
 export default function ActionModal({
   action,
@@ -36,6 +43,7 @@ export default function ActionModal({
   data,
   onClose,
   onSaved,
+  onSignedOut,
 }: {
   action: Action;
   family: Family;
@@ -43,9 +51,12 @@ export default function ActionModal({
   data: Workspace;
   onClose: () => void;
   onSaved: (message: string, month?: string) => void;
+  onSignedOut: () => void;
 }) {
   const { t, ts } = useI18n();
   const [busy, setBusy] = useState(false);
+  // A reset code is shown once, inside the dialog, after it is issued.
+  const [resetCode, setResetCode] = useState("");
   const [error, setError] = useState("");
   const requestId = useRef(crypto.randomUUID());
   const savedExpense = useRef<number | null>(null);
@@ -81,6 +92,11 @@ export default function ActionModal({
       ? t("modal.contribute", { name: goal.name })
       : t("modal.contributeAny"),
     "delete-goal": t("modal.deleteGoal"),
+    request: t("modal.request"),
+    "reject-request": t("modal.rejectRequest"),
+    "reset-code": t("modal.resetCode"),
+    password: t("modal.password"),
+    "logout-all": t("modal.logoutAll"),
   };
   const subtitles: Partial<Record<Action["kind"], string>> = {
     expense: t("modal.subExpense"),
@@ -92,6 +108,17 @@ export default function ActionModal({
     contribute: goal
       ? (goalHint(goal, t) ?? t("goals.reached"))
       : t("modal.contributeAnySub"),
+    request: t("modal.subRequest"),
+    "reject-request":
+      action.kind === "reject-request"
+        ? `${action.request.note} · ${money(action.request.amount_kzt)} · ${action.request.user_name}`
+        : "",
+    "reset-code":
+      action.kind === "reset-code"
+        ? t("modal.subResetCode", { name: action.member.full_name })
+        : "",
+    password: t("modal.subPassword"),
+    "logout-all": t("modal.subLogoutAll"),
   };
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -232,6 +259,41 @@ export default function ActionModal({
       } else if (action.kind === "delete-goal") {
         await api(`${base}/goals/${action.goal.id}`, { method: "DELETE" });
         onSaved(t("toast.goalDeleted"));
+      } else if (action.kind === "request") {
+        const result = await send<PurchaseRequest>(`${base}/requests`, {
+          category_id: Number(values.category_id),
+          amount_kzt: Number(values.amount_kzt),
+          note: values.note,
+        });
+        onSaved(
+          t(
+            result.status === "approved"
+              ? "toast.requestAuto"
+              : "toast.requestSent",
+          ),
+        );
+      } else if (action.kind === "reject-request") {
+        await send(`${base}/requests/${action.request.id}/reject`, {
+          reason: values.reason ?? "",
+        });
+        onSaved(t("toast.requestRejected"));
+      } else if (action.kind === "reset-code") {
+        const result = await send<{ code: string }>(
+          `${base}/members/${action.member.id}/reset-code`,
+          {},
+        );
+        setResetCode(result.code);
+      } else if (action.kind === "password") {
+        if (values.new_password !== values.repeat_password)
+          throw new Error(t("form.passwordsDiffer"));
+        await send("/auth/password", {
+          current_password: values.current_password,
+          new_password: values.new_password,
+        });
+        onSaved(t("toast.passwordChanged"));
+      } else if (action.kind === "logout-all") {
+        await send("/auth/logout-all", {});
+        onSignedOut();
       }
     } catch (error) {
       setError(messageOf(error));
@@ -585,6 +647,107 @@ export default function ActionModal({
               <p className="form-hint">{t("form.goalHint")}</p>
             </>
           )}
+          {action.kind === "request" && (
+            <>
+              {categorySelect(
+                "category_id",
+                t("form.category"),
+                undefined,
+                data.categories.filter((item) => item.is_active),
+              )}
+              {amount("amount_kzt", t("form.amount"), undefined, 10000000, {
+                focus: false,
+              })}
+              <label>
+                {t("form.requestNote")}
+                <input
+                  name="note"
+                  maxLength={160}
+                  placeholder={t("form.requestNotePh")}
+                  required
+                />
+              </label>
+              <p className="form-hint">
+                {family.auto_approve_kzt
+                  ? t("form.requestHintAuto", {
+                      amount: money(family.auto_approve_kzt),
+                    })
+                  : t("form.requestHint")}
+              </p>
+            </>
+          )}
+          {action.kind === "reject-request" && (
+            <label>
+              {t("form.rejectReason")}{" "}
+              <span className="muted">{t("form.optional")}</span>
+              <input
+                name="reason"
+                maxLength={160}
+                placeholder={t("form.rejectReasonPh")}
+                autoFocus
+              />
+            </label>
+          )}
+          {action.kind === "reset-code" &&
+            (resetCode ? (
+              <div className="reset-code">
+                <KeyRound size={20} />
+                <code>{resetCode}</code>
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label={t("form.copyCode")}
+                  title={t("form.copyCode")}
+                  onClick={() => navigator.clipboard?.writeText(resetCode)}
+                >
+                  <Copy size={16} />
+                </button>
+                <p className="form-hint">{t("form.resetCodeHint")}</p>
+              </div>
+            ) : (
+              <p className="form-hint">{t("form.resetCodeIntro")}</p>
+            ))}
+          {action.kind === "password" && (
+            <>
+              <label>
+                {t("form.currentPassword")}
+                <input
+                  name="current_password"
+                  type="password"
+                  autoComplete="current-password"
+                  maxLength={128}
+                  required
+                  autoFocus
+                />
+              </label>
+              <label>
+                {t("form.newPassword")}
+                <input
+                  name="new_password"
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={8}
+                  maxLength={128}
+                  required
+                />
+              </label>
+              <label>
+                {t("form.repeatPassword")}
+                <input
+                  name="repeat_password"
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={8}
+                  maxLength={128}
+                  required
+                />
+              </label>
+              <p className="form-hint">{t("form.passwordHint")}</p>
+            </>
+          )}
+          {action.kind === "logout-all" && (
+            <p className="delete-message">{t("form.logoutAllText")}</p>
+          )}
           {action.kind === "delete-goal" && (
             <p className="delete-message">
               {action.goal.name} ·{" "}
@@ -602,25 +765,35 @@ export default function ActionModal({
             onClick={onClose}
             disabled={busy}
           >
-            {t("common.cancel")}
+            {t(resetCode ? "common.done" : "common.cancel")}
           </button>
-          <SubmitButton busy={busy}>
-            {t(
-              action.kind === "delete-goal"
-                ? "common.delete"
-                : action.kind === "goal"
-                  ? "form.saveGoal"
-                  : action.kind === "contribute"
-                    ? "goals.contribute"
-                    : action.kind.startsWith("delete")
-                      ? "form.deleteEntry"
-                      : action.kind === "expense"
-                        ? "form.saveExpense"
-                        : action.kind === "transfer"
-                          ? "form.moveBudget"
-                          : "common.saveChanges",
-            )}
-          </SubmitButton>
+          {!resetCode && (
+            <SubmitButton busy={busy}>
+              {t(
+                action.kind === "delete-goal"
+                  ? "common.delete"
+                  : action.kind === "goal"
+                    ? "form.saveGoal"
+                    : action.kind === "contribute"
+                      ? "goals.contribute"
+                      : action.kind.startsWith("delete")
+                        ? "form.deleteEntry"
+                        : action.kind === "expense"
+                          ? "form.saveExpense"
+                          : action.kind === "transfer"
+                            ? "form.moveBudget"
+                            : action.kind === "request"
+                              ? "form.sendRequest"
+                              : action.kind === "reject-request"
+                                ? "requests.reject"
+                                : action.kind === "reset-code"
+                                  ? "form.issueCode"
+                                  : action.kind === "logout-all"
+                                    ? "form.logoutAll"
+                                    : "common.saveChanges",
+              )}
+            </SubmitButton>
+          )}
         </footer>
       </form>
     </Modal>

@@ -113,3 +113,40 @@ class GoalUpdate(GoalInput):
 
 class GoalContribution(Input):
     amount_kzt: Money
+
+
+Password = Annotated[str, Field(min_length=8, max_length=128)]
+
+
+class PasswordChange(Input):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: Password
+
+
+class PasswordReset(Input):
+    email: EmailStr = Field(max_length=100)
+    code: str = Field(min_length=4, max_length=20)
+    new_password: Password
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value):
+        return value.lower()
+
+
+class PurchaseRequestInput(Input):
+    category_id: int = Field(gt=0)
+    amount_kzt: Money
+    note: Name = Field(max_length=160)
+
+
+class RequestDecision(Input):
+    reason: str = Field(default="", max_length=160)
+
+
+class RequestRules(Input):
+    auto_approve_kzt: Money | None = None
+
+
+class NotificationsRead(Input):
+    ids: list[int] | None = Field(default=None, max_length=200)

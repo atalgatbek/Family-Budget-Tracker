@@ -41,6 +41,7 @@ async def families_for(db: AsyncSession, user_id: int) -> list[dict]:
                 "currency": family.currency,
                 "role": role,
                 "latest_budget_month": latest,
+                "auto_approve_kzt": family.auto_approve_kzt,
             }
         )
     return result

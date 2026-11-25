@@ -7,6 +7,7 @@ import {
   Plus,
   Target,
   ArrowRightLeft,
+  Inbox,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -59,6 +60,14 @@ export function quickActions({
         goals.length ? onAction({ kind: "contribute" }) : navigate("goals"),
     },
   ];
+  if (family.role !== "Admin")
+    items.push({
+      id: "request",
+      label: "quick.request",
+      icon: Inbox,
+      tone: "warning",
+      run: () => onAction({ kind: "request" }),
+    });
   if (family.role === "Admin")
     items.push({
       id: "transfer",

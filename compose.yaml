@@ -25,6 +25,8 @@ services:
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
       UPLOAD_DIR: /app/uploads
+      # Nginx in front of the API passes the visitor address in X-Real-IP.
+      TRUST_PROXY_HEADERS: "true"
     command: ["alembic", "-c", "alembic.ini", "upgrade", "head"]
     depends_on:
       db:

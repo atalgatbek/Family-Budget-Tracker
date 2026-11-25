@@ -439,6 +439,116 @@ const kk: Record<keyof typeof en, string> = {
   "modal.contributeAnySub": "Мақсатты және жинайтын соманы таңдаңыз.",
   "form.chooseGoal": "Мақсат",
 
+  "nav.requests": "Сұраулар",
+  "title.requests": "Алдымен сұра, сосын сатып ал.",
+  "title.requestsSub":
+    "Отбасы ішіндегі сатып алу сұраулары, түсінікті ережелермен.",
+  "count.transactions": "Тексеруді күтіп тұрған отбасы жазбалары",
+  "count.requests": "Шешім күтіп тұрған сұраулар",
+  "quick.request": "Сұрау",
+  "quick.requestLong": "Сатып алуға рұқсат сұрау",
+  "auth.expired": "Сессия аяқталды. Жалғастыру үшін қайта кіріңіз.",
+  "auth.forgot": "Құпиясөзді ұмыттыңыз ба?",
+  "auth.resetTitle": "Жаңа құпиясөз.",
+  "auth.resetSub":
+    "Отбасы әкімшісінен қалпына келтіру кодын сұрап, осында енгізіңіз.",
+  "auth.resetCode": "Қалпына келтіру коды",
+  "auth.resetSubmit": "Жаңа құпиясөзді сақтау",
+  "auth.resetDone": "Құпиясөз өзгертілді. Жаңасымен кіріңіз.",
+  "auth.backToSignIn": "Кіруге оралу",
+  "common.done": "Дайын",
+  "form.copyCode": "Кодты көшіру",
+  "form.currentPassword": "Қазіргі құпиясөз",
+  "form.newPassword": "Жаңа құпиясөз",
+  "form.repeatPassword": "Жаңа құпиясөзді қайталаңыз",
+  "form.passwordsDiffer": "Жаңа құпиясөздер сәйкес келмейді.",
+  "form.passwordHint":
+    "Кемінде 8 таңба. Басқа құрылғыларда қайта кіру керек болады.",
+  "form.logoutAll": "Барлық құрылғыдан шығу",
+  "form.logoutAllText":
+    "Аккаунтыңыз ашық тұрған барлық құрылғы, осы құрылғыны қоса, шығып кетеді.",
+  "form.rejectReason": "Себебі",
+  "form.rejectReasonPh": "мыс. Келесі айға дейін күтейік",
+  "form.requestNote": "Не сатып алғыңыз келеді?",
+  "form.requestNotePh": "мыс. Кроссовкалар",
+  "form.requestHint": "Әкімші сұрауды мақұлдайды немесе қабылдамайды.",
+  "form.requestHintAuto":
+    "{amount} дейінгі сұраулар санат лимиттен аспаса, бірден мақұлданады.",
+  "form.sendRequest": "Сұрауды жіберу",
+  "form.issueCode": "Код жасау",
+  "form.resetCodeIntro":
+    "Осы код арқылы мүше кіру бетінде жаңа құпиясөз орнатады. Код бір рет және 30 минут жұмыс істейді. Жаңа код ескісін жояды.",
+  "form.resetCodeHint":
+    "Кодты мүшеге жеке немесе хабарлама арқылы беріңіз. Ол тек бір рет көрсетіледі.",
+  "modal.request": "Сатып алу сұрауы",
+  "modal.subRequest": "Не сатып алғыңыз келетінін және неге екенін жазыңыз.",
+  "modal.rejectRequest": "Сұрауды қабылдамау керек пе?",
+  "modal.resetCode": "Құпиясөзді қалпына келтіру коды",
+  "modal.subResetCode": "Кімге: {name}",
+  "modal.password": "Құпиясөзді өзгерту",
+  "modal.subPassword":
+    "Бұл сіз екеніңізді растау үшін қазіргі құпиясөзді енгізіңіз.",
+  "modal.logoutAll": "Барлық құрылғыдан шығу керек пе?",
+  "modal.subLogoutAll": "Басқа біреудің құрылғысында кірген болсаңыз пайдалы.",
+  "house.changePassword": "Құпиясөзді өзгерту",
+  "house.resetFor": "Құпиясөзді қалпына келтіру: {name}",
+  "house.securityTitle": "Аккаунт қауіпсіздігі",
+  "house.securityText":
+    "Кіру белсенділіксіз 30 минут және ең көбі 12 сағат жарамды.",
+  "notice.title": "Хабарландырулар",
+  "notice.unreadLabel": "Хабарландырулар, оқылмағаны: {count}",
+  "notice.readAll": "Барлығын оқылды деп белгілеу",
+  "notice.empty": "Әзірге жаңа ештеңе жоқ.",
+  "notice.request_new": "{by} {amount} сұрайды: «{note}» ({category})",
+  "notice.request_auto":
+    "Автоматты түрде мақұлданды: {by}, «{note}» үшін {amount}",
+  "notice.request_approved": "Сұрауыңыз мақұлданды: «{note}» үшін {amount}",
+  "notice.request_rejected":
+    "Сұрауыңыз қабылданбады: «{note}». Себебі: {reason}",
+  "notice.request_rejected_plain": "Сұрауыңыз қабылданбады: «{note}»",
+  "notice.limit_warning": "{category}: лимитке жақын, {limit} ішінен {spent}",
+  "notice.limit_over": "{category}: лимиттен асты, {limit} ішінен {spent}",
+  "notice.goal_reached": "«{goal}» мақсаты орындалды! Соңғы жарна: {by}.",
+  "requests.new": "Жаңа сұрау",
+  "requests.introAdmin":
+    "Мүшелер сатып алмас бұрын сұрайды. Мақұлдаңыз, қабылдамаңыз немесе шағын сұрауларды автоматты түрде өткізіңіз.",
+  "requests.introMember":
+    "Сатып алмас бұрын сұраңыз. Сұрау мақұлданғанда, ол шығыстарыңызға өзі қосылады.",
+  "requests.rulesTitle": "Автоматты мақұлдау ережесі",
+  "requests.rulesText":
+    "Шағын сұраулар санат айлық лимиттен аспаса, бірден мақұлданады.",
+  "requests.rulesEnable": "Автоматты түрде мақұлдау шегі",
+  "requests.rulesAmount": "Автоматты мақұлдау сомасы",
+  "requests.waiting": "Шешіміңізді күтуде",
+  "requests.myWaiting": "Жауап күтуде",
+  "requests.noneWaiting": "Бәрі қаралды",
+  "requests.noneWaitingAdmin":
+    "Жаңа сұраулар жоқ. Олар осында және хабарландыруларда пайда болады.",
+  "requests.noneWaitingMember":
+    "Бір нәрсе сатып алғыңыз келе ме? Жоғарыдағы батырмамен сұрау жіберіңіз.",
+  "requests.history": "Тарих",
+  "requests.approve": "Мақұлдау",
+  "requests.reject": "Қабылдамау",
+  "requests.cancel": "Сұрауды болдырмау",
+  "requests.fits": "Лимит ішінде: санатта {left} қалды",
+  "requests.overLimit": "Лимиттен асады: санатта тек {left} қалды",
+  "requests.decidedAuto": "Ереже бойынша автоматты түрде мақұлданды",
+  "requests.decidedBy": "Мақұлдаған: {name}",
+  "requests.rejectedBy": "Қабылдамаған: {name}",
+  "requests.rejectedReason": "Қабылданбады: {reason}",
+  "requests.cancelledNote": "Авторы болдырмады",
+  "requests.status.pending": "Күтуде",
+  "requests.status.approved": "Мақұлданды",
+  "requests.status.rejected": "Қабылданбады",
+  "requests.status.cancelled": "Болдырылмады",
+  "toast.requestSent": "Сұрау жіберілді. Әкімші оны хабарландырулардан көреді.",
+  "toast.requestAuto": "Автоматты түрде мақұлданып, шығыстарға қосылды.",
+  "toast.requestApproved": "Сұрау мақұлданды, шығыс қосылды.",
+  "toast.requestRejected": "Сұрау қабылданбады.",
+  "toast.requestCancelled": "Сұрау болдырылмады.",
+  "toast.rulesSaved": "Автоматты мақұлдау ережесі сақталды.",
+  "toast.passwordChanged": "Құпиясөз өзгертілді. Басқа құрылғылар шығып кетті.",
+
   "house.eyebrow": "СІЗДІҢ ОРТАҚ КЕҢІСТІГІҢІЗ",
   "house.members_one": "{count} мүше",
   "house.members_few": "{count} мүше",
@@ -484,6 +594,21 @@ export const kkServer: Record<string, string> = {
     "Мерзімді бүгінгі күннен ерте қоймаңыз.",
   "The saved amount would be too large.":
     "Жиналған сома тым үлкен болып кетеді.",
+  "The current password is incorrect.": "Қазіргі құпиясөз қате.",
+  "Choose a new password that differs from the old one.":
+    "Жаңа құпиясөз ескісінен өзгеше болуы керек.",
+  "This reset code is invalid or has expired.":
+    "Қалпына келтіру коды қате немесе мерзімі өткен.",
+  "Admins can reset passwords only for members who belong to no other household.":
+    "Әкімші құпиясөзді басқа отбасыларда жоқ мүшеге ғана қалпына келтіре алады.",
+  "Household member not found.": "Отбасы мүшесі табылмады.",
+  "Purchase request not found.": "Сатып алу сұрауы табылмады.",
+  "This request has already been decided.":
+    "Бұл сұрау бойынша шешім қабылданып қойған.",
+  "Choose an active category.": "Белсенді санатты таңдаңыз.",
+  "Unknown request status.": "Сұраудың күйі белгісіз.",
+  "Too many requests. Please wait a moment and try again.":
+    "Сұраулар тым көп. Сәл күтіп, қайталап көріңіз.",
   "Something went wrong. Please try again.":
     "Бірдеңе дұрыс болмады. Қайталап көріңіз.",
   "Please sign in to continue.": "Жалғастыру үшін кіріңіз.",

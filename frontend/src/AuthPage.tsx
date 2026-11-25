@@ -15,13 +15,19 @@ import { ThemeToggle } from "./theme";
 import { LanguageSwitch, useI18n } from "./i18n";
 import type { Session } from "./types";
 
+type Mode = "login" | "register" | "reset";
+
 export default function AuthPage({
   onLogin,
+  expired = false,
 }: {
   onLogin: (session: Session) => void;
+  expired?: boolean;
 }) {
   const { t } = useI18n();
-  const [register, setRegister] = useState(false);
+  const [mode, setMode] = useState<Mode>("login");
+  const register = mode === "register";
+  const [notice, setNotice] = useState(expired ? t("auth.expired") : "");
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -31,6 +37,21 @@ export default function AuthPage({
     setError("");
     const values = Object.fromEntries(new FormData(event.currentTarget));
     try {
+      if (mode === "reset") {
+        if (values.new_password !== values.repeat_password)
+          throw new Error(t("form.passwordsDiffer"));
+        await api("/auth/reset", {
+          method: "POST",
+          body: JSON.stringify({
+            email: values.email,
+            code: values.code,
+            new_password: values.new_password,
+          }),
+        });
+        switchMode("login");
+        setNotice(t("auth.resetDone"));
+        return;
+      }
       onLogin(
         await api<Session>(`/auth/${register ? "register" : "login"}`, {
           method: "POST",
@@ -43,6 +64,23 @@ export default function AuthPage({
       setBusy(false);
     }
   }
+  function switchMode(next: Mode) {
+    setMode(next);
+    setError("");
+    setNotice("");
+  }
+  const title =
+    mode === "reset"
+      ? "auth.resetTitle"
+      : register
+        ? "auth.registerTitle"
+        : "auth.loginTitle";
+  const subtitle =
+    mode === "reset"
+      ? "auth.resetSub"
+      : register
+        ? "auth.registerSub"
+        : "auth.loginSub";
   return (
     <main className="auth-layout">
       <div className="floating-controls">
@@ -108,9 +146,15 @@ export default function AuthPage({
           <span className="small-logo">
             <ChartNoAxesCombined size={25} />
           </span>
-          <h2>{t(register ? "auth.registerTitle" : "auth.loginTitle")}</h2>
-          <p>{t(register ? "auth.registerSub" : "auth.loginSub")}</p>
-          <form onSubmit={submit}>
+          <h2>{t(title)}</h2>
+          <p>{t(subtitle)}</p>
+          {notice && (
+            <div className="auth-notice" role="status">
+              <LockKeyhole size={15} />
+              <span>{notice}</span>
+            </div>
+          )}
+          <form onSubmit={submit} key={mode}>
             {register && (
               <>
                 <label>
@@ -145,48 +189,115 @@ export default function AuthPage({
                 required
               />
             </label>
-            <label>
-              {t("auth.password")}
-              <div className="password-field">
-                <input
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  minLength={register ? 8 : 1}
-                  maxLength={128}
-                  autoComplete={register ? "new-password" : "current-password"}
-                  placeholder={t(
-                    register ? "auth.pwPhRegister" : "auth.pwPhLogin",
-                  )}
-                  required
-                />
-                <button
-                  type="button"
-                  aria-label={t(
-                    showPassword ? "auth.hidePassword" : "auth.showPassword",
-                  )}
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-                </button>
-              </div>
-            </label>
+            {mode === "reset" && (
+              <>
+                <label>
+                  {t("auth.resetCode")}
+                  <input
+                    name="code"
+                    autoComplete="one-time-code"
+                    maxLength={20}
+                    placeholder="ABCD-2345"
+                    className="code-input"
+                    required
+                  />
+                </label>
+                <label>
+                  {t("form.newPassword")}
+                  <input
+                    name="new_password"
+                    type="password"
+                    autoComplete="new-password"
+                    minLength={8}
+                    maxLength={128}
+                    placeholder={t("auth.pwPhRegister")}
+                    required
+                  />
+                </label>
+                <label>
+                  {t("form.repeatPassword")}
+                  <input
+                    name="repeat_password"
+                    type="password"
+                    autoComplete="new-password"
+                    minLength={8}
+                    maxLength={128}
+                    required
+                  />
+                </label>
+              </>
+            )}
+            {mode !== "reset" && (
+              <label>
+                {t("auth.password")}
+                <div className="password-field">
+                  <input
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    minLength={register ? 8 : 1}
+                    maxLength={128}
+                    autoComplete={
+                      register ? "new-password" : "current-password"
+                    }
+                    placeholder={t(
+                      register ? "auth.pwPhRegister" : "auth.pwPhLogin",
+                    )}
+                    required
+                  />
+                  <button
+                    type="button"
+                    aria-label={t(
+                      showPassword ? "auth.hidePassword" : "auth.showPassword",
+                    )}
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                  </button>
+                </div>
+              </label>
+            )}
+            {mode === "login" && (
+              <button
+                type="button"
+                className="text-button forgot-link"
+                onClick={() => switchMode("reset")}
+              >
+                {t("auth.forgot")}
+              </button>
+            )}
             {error && <ErrorNotice message={error} />}
             <button className="button primary auth-submit" disabled={busy}>
-              {t(busy ? "auth.wait" : register ? "auth.create" : "auth.signIn")}
+              {t(
+                busy
+                  ? "auth.wait"
+                  : mode === "reset"
+                    ? "auth.resetSubmit"
+                    : register
+                      ? "auth.create"
+                      : "auth.signIn",
+              )}
               <ArrowRight size={18} />
             </button>
           </form>
           <p className="auth-switch">
-            {t(register ? "auth.already" : "auth.newHere")}{" "}
-            <button
-              className="text-button"
-              onClick={() => {
-                setRegister(!register);
-                setError("");
-              }}
-            >
-              {t(register ? "auth.signIn" : "auth.createAccount")}
-            </button>
+            {mode === "reset" ? (
+              <button
+                className="text-button"
+                onClick={() => switchMode("login")}
+              >
+                {t("auth.backToSignIn")}
+              </button>
+            ) : (
+              <>
+                {t(register ? "auth.already" : "auth.newHere")}{" "}
+                <button
+                  className="text-button"
+                  onClick={() => switchMode(register ? "login" : "register")}
+                >
+                  {t(register ? "auth.signIn" : "auth.createAccount")}
+                </button>
+              </>
+            )}
           </p>
           <div className="auth-note">
             <LockKeyhole size={15} />
