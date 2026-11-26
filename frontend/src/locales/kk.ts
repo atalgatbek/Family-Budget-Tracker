@@ -451,11 +451,19 @@ const kk: Record<keyof typeof en, string> = {
   "auth.forgot": "Құпиясөзді ұмыттыңыз ба?",
   "auth.resetTitle": "Жаңа құпиясөз.",
   "auth.resetSub":
-    "Отбасы әкімшісінен қалпына келтіру кодын сұрап, осында енгізіңіз.",
+    "Хаттағы кодты немесе отбасы әкімшісі берген кодты енгізіңіз.",
   "auth.resetCode": "Қалпына келтіру коды",
   "auth.resetSubmit": "Жаңа құпиясөзді сақтау",
   "auth.resetDone": "Құпиясөз өзгертілді. Жаңасымен кіріңіз.",
   "auth.backToSignIn": "Кіруге оралу",
+  "auth.forgotTitle": "Құпиясөзді қалпына келтіру.",
+  "auth.forgotSub": "Аккаунт поштасын енгізіңіз, біз бір реттік код жібереміз.",
+  "auth.sendCode": "Код жіберу",
+  "auth.haveCode": "Менде код бар",
+  "auth.resendCode": "Жаңа код жіберу",
+  "auth.codeSent":
+    "Бұл поштаға аккаунт тіркелген болса, оған код жібердік. Кіріс хаттарды және «Спам» қалтасын тексеріңіз.",
+  "auth.fromLink": "Код енгізілді. Жаңа құпиясөз ойлап табыңыз.",
   "common.done": "Дайын",
   "form.copyCode": "Кодты көшіру",
   "form.currentPassword": "Қазіргі құпиясөз",
@@ -479,7 +487,7 @@ const kk: Record<keyof typeof en, string> = {
   "form.resetCodeIntro":
     "Осы код арқылы мүше кіру бетінде жаңа құпиясөз орнатады. Код бір рет және 30 минут жұмыс істейді. Жаңа код ескісін жояды.",
   "form.resetCodeHint":
-    "Кодты мүшеге жеке немесе хабарлама арқылы беріңіз. Ол тек бір рет көрсетіледі.",
+    "Кодты мүшеге жеке немесе хабарлама арқылы беріңіз. Ол тек бір рет көрсетіледі. Кіру бетінде: «Құпиясөзді ұмыттыңыз ба?» → «Менде код бар».",
   "modal.request": "Сатып алу сұрауы",
   "modal.subRequest": "Не сатып алғыңыз келетінін және неге екенін жазыңыз.",
   "modal.rejectRequest": "Сұрауды қабылдамау керек пе?",
@@ -597,6 +605,8 @@ export const kkServer: Record<string, string> = {
   "The current password is incorrect.": "Қазіргі құпиясөз қате.",
   "Choose a new password that differs from the old one.":
     "Жаңа құпиясөз ескісінен өзгеше болуы керек.",
+  "We could not send the email. Try again in a few minutes.":
+    "Хатты жіберу мүмкін болмады. Бірнеше минуттан кейін қайталап көріңіз.",
   "This reset code is invalid or has expired.":
     "Қалпына келтіру коды қате немесе мерзімі өткен.",
   "Admins can reset passwords only for members who belong to no other household.":

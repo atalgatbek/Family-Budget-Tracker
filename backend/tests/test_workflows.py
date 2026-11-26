@@ -480,3 +480,92 @@ def test_client_ip_trusts_proxy_headers_only_when_configured(monkeypatch):
     assert client_ip(request) == "10.0.0.2"
     monkeypatch.setattr(settings, "trust_proxy_headers", True)
     assert client_ip(request) == "203.0.113.7"
+
+
+async def test_forgot_password_sends_a_code_by_email(client, household, monkeypatch):
+    from app import mail
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "smtp_host", "smtp.test")
+    monkeypatch.setattr(settings, "smtp_user", "sender@example.com")
+    sent = []
+    monkeypatch.setattr(mail, "deliver", sent.append)
+    origin = {"Origin": "http://localhost:5173"}
+
+    async def forgot(email, lang="ru"):
+        return await new_client().post(
+            "/api/auth/forgot", json={"email": email, "lang": lang}, headers=origin
+        )
+
+    # The answer does not say whether the account exists.
+    unknown = await forgot("nobody@example.com")
+    known = await forgot("Admin@Example.com")
+    assert unknown.status_code == known.status_code == 202
+    assert unknown.json() == known.json()
+    assert len(sent) == 1
+    message = sent[0]
+    assert message["To"] == "admin@example.com"
+    assert message["Subject"] == "Код для сброса пароля"
+    assert "sender@example.com" in message["From"]
+    body = message.get_body(("plain",)).get_content()
+    code = next(line for line in body.splitlines() if len(line) == 9 and line[4] == "-")
+    assert f"http://localhost:5173/?reset={code}&email=admin%40example.com" in body
+    assert code in message.get_body(("html",)).get_content()
+
+    # One email a minute per account, so the inbox cannot be flooded.
+    assert (await forgot("admin@example.com", "kk")).status_code == 202
+    assert len(sent) == 1
+
+    # The emailed code works once, also for an admin, and ends every session.
+    reset = {"email": "admin@example.com", "code": code, "new_password": "Emailed123!"}
+    assert (await new_client().post("/api/auth/reset", json=reset)).status_code == 204
+    assert (await client.get("/api/auth/me")).status_code == 401
+    assert (await new_client().post("/api/auth/reset", json=reset)).status_code == 400
+    login = await new_client().post(
+        "/api/auth/login",
+        json={"email": "admin@example.com", "password": "Emailed123!"},
+    )
+    assert login.status_code == 200
+
+    # A newer email replaces the older code; English by default.
+    async with engine.begin() as connection:
+        await connection.execute(
+            text("UPDATE password_reset SET created_at = now() - interval '2 minutes'")
+        )
+    await new_client().post(
+        "/api/auth/forgot", json={"email": "admin@example.com"}, headers=origin
+    )
+    assert sent[-1]["Subject"] == "Your password reset code"
+
+    # A link only points at our own site.
+    async with engine.begin() as connection:
+        await connection.execute(
+            text("UPDATE password_reset SET created_at = now() - interval '2 minutes'")
+        )
+    await new_client().post(
+        "/api/auth/forgot",
+        json={"email": "admin@example.com"},
+        headers={"Origin": "https://evil.example"},
+    )
+    assert "evil" not in sent[-1].get_body(("plain",)).get_content()
+
+    # If the email cannot be sent, the person is told, and no code is kept.
+    def broken(message):
+        raise OSError("connection refused")
+
+    monkeypatch.setattr(mail, "deliver", broken)
+    async with engine.begin() as connection:
+        await connection.execute(
+            text("UPDATE password_reset SET created_at = now() - interval '2 minutes'")
+        )
+        before = (
+            await connection.execute(text("SELECT count(*) FROM password_reset"))
+        ).scalar()
+    failed = await forgot("admin@example.com")
+    assert failed.status_code == 503
+    assert failed.json()["detail"].startswith("We could not send the email")
+    async with engine.begin() as connection:
+        after = (
+            await connection.execute(text("SELECT count(*) FROM password_reset"))
+        ).scalar()
+    assert after == before

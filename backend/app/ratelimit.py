@@ -23,7 +23,12 @@ from .database import engine
 from .models import RateLimit
 from .security import SAFE_METHODS, client_ip
 
-AUTH_PATHS = {"/api/auth/login", "/api/auth/register", "/api/auth/reset"}
+AUTH_PATHS = {
+    "/api/auth/login",
+    "/api/auth/register",
+    "/api/auth/forgot",
+    "/api/auth/reset",
+}
 EXEMPT_PATHS = {"/api/health"}
 log = logging.getLogger(__name__)
 

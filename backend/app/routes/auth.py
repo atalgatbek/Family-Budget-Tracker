@@ -1,9 +1,10 @@
-import hashlib
 import hmac
+import logging
+from datetime import timedelta
 from fastapi import APIRouter, HTTPException, Request, Response
-from starlette.concurrency import run_in_threadpool
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
+from starlette.concurrency import run_in_threadpool
 from ..auth import (
     COOKIE,
     DB,
@@ -16,16 +17,37 @@ from ..auth import (
     start_session,
     token_claims,
 )
+from ..config import get_settings
+from ..mail import MailError, send_mail
 from ..models import Category, Family, FamilyMember, PasswordReset, User, UserSession
-from ..schemas import Login, PasswordChange, PasswordReset as ResetInput, Register
+from ..resets import code_digest, new_reset_code, reset_email, reset_link
+from ..schemas import (
+    ForgotPassword,
+    Login,
+    PasswordChange,
+    Register,
+)
+from ..schemas import (
+    PasswordReset as ResetInput,
+)
 from ..services import families_for, user_view
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 INVALID_CODE = "This reset code is invalid or has expired."
 
+# A new email is sent at most this often per account.
+RESEND_SECONDS = 60
+log = logging.getLogger(__name__)
 
-def code_digest(code: str) -> str:
-    return hashlib.sha256(code.strip().upper().replace("-", "").encode()).hexdigest()
+
+def site_address(request: Request) -> str | None:
+    """Where the link in the email should point: the configured address, or
+    the site the request came from when it is one of ours."""
+    settings = get_settings()
+    if settings.public_url:
+        return settings.public_url
+    origin = request.headers.get("origin")
+    return origin if origin in settings.origins else None
 
 
 @router.post("/register", status_code=201)
@@ -119,6 +141,40 @@ async def change_password(
     # Other devices have to sign in again with the new password.
     await revoke_sessions(db, user.id, keep=session.id)
     await db.commit()
+
+
+@router.post("/forgot", status_code=202)
+async def forgot_password(payload: ForgotPassword, request: Request, db: DB):
+    """Emails a one-time code. The answer is the same whether or not the
+    account exists."""
+    user = await db.scalar(select(User).where(User.email == payload.email))
+    if user is None:
+        return {"detail": "If this email has an account, we sent a code to it."}
+    recent = await db.scalar(
+        select(PasswordReset.id).where(
+            PasswordReset.user_id == user.id,
+            PasswordReset.created_by == user.id,
+            PasswordReset.created_at > now() - timedelta(seconds=RESEND_SECONDS),
+        )
+    )
+    if recent is None:
+        code = await new_reset_code(db, user.id, created_by=user.id)
+        base = site_address(request)
+        subject, text, html = reset_email(
+            payload.lang,
+            user.full_name,
+            code,
+            reset_link(base, user.email, code) if base else None,
+        )
+        try:
+            await send_mail(user.email, subject, text, html)
+        except MailError:
+            await db.rollback()
+            raise HTTPException(
+                503, "We could not send the email. Try again in a few minutes."
+            )
+        await db.commit()
+    return {"detail": "If this email has an account, we sent a code to it."}
 
 
 @router.post("/reset", status_code=204)

@@ -446,11 +446,19 @@ const ru: Record<keyof typeof en, string> = {
   "auth.forgot": "Забыли пароль?",
   "auth.resetTitle": "Новый пароль.",
   "auth.resetSub":
-    "Попросите у администратора семьи код сброса и введите его здесь.",
+    "Введите код из письма или код, который дал администратор семьи.",
   "auth.resetCode": "Код сброса",
   "auth.resetSubmit": "Сохранить новый пароль",
   "auth.resetDone": "Пароль изменён. Войдите с новым паролем.",
   "auth.backToSignIn": "Вернуться ко входу",
+  "auth.forgotTitle": "Сброс пароля.",
+  "auth.forgotSub": "Введите почту аккаунта, и мы пришлём одноразовый код.",
+  "auth.sendCode": "Отправить код",
+  "auth.haveCode": "У меня уже есть код",
+  "auth.resendCode": "Отправить новый код",
+  "auth.codeSent":
+    "Если аккаунт с этой почтой есть, мы отправили на неё код. Проверьте входящие и папку «Спам».",
+  "auth.fromLink": "Код уже вставлен. Придумайте новый пароль.",
   "common.done": "Готово",
   "form.copyCode": "Скопировать код",
   "form.currentPassword": "Текущий пароль",
@@ -474,7 +482,7 @@ const ru: Record<keyof typeof en, string> = {
   "form.resetCodeIntro":
     "По коду участник задаст новый пароль на странице входа. Код работает один раз и 30 минут. Новый код отменяет старый.",
   "form.resetCodeHint":
-    "Передайте код участнику лично или в сообщении. Он показывается только один раз.",
+    "Передайте код участнику лично или в сообщении. Он показывается только один раз. На странице входа: «Забыли пароль?» → «У меня уже есть код».",
   "modal.request": "Запрос на покупку",
   "modal.subRequest": "Напишите, что хотите купить и зачем.",
   "modal.rejectRequest": "Отклонить запрос?",
@@ -591,6 +599,8 @@ export const ruServer: Record<string, string> = {
   "The current password is incorrect.": "Текущий пароль неверный.",
   "Choose a new password that differs from the old one.":
     "Новый пароль должен отличаться от старого.",
+  "We could not send the email. Try again in a few minutes.":
+    "Не удалось отправить письмо. Попробуйте через несколько минут.",
   "This reset code is invalid or has expired.":
     "Код сброса неверный или уже не действует.",
   "Admins can reset passwords only for members who belong to no other household.":

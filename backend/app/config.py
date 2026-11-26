@@ -1,6 +1,7 @@
 import os
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -42,6 +43,19 @@ class Settings(BaseSettings):
     rate_limit_auth: int = Field(default=10, ge=1)
     # Behind a proxy that sets X-Real-IP (Vercel, or the Compose Nginx).
     trust_proxy_headers: bool = Field(default_factory=deployed_on_vercel)
+    # Email for password reset codes. Without SMTP_HOST, local development
+    # writes the email to the server log instead.
+    smtp_host: str = ""
+    smtp_port: int = Field(default=587, ge=1, le=65535)
+    smtp_user: str = ""
+    smtp_password: str = ""
+    # auto: SSL on port 465, otherwise STARTTLS. "none" only for a local test server.
+    smtp_security: Literal["auto", "ssl", "starttls", "none"] = "auto"
+    mail_from: str = ""
+    mail_from_name: str = "Family Budget"
+    # Address of the site, for the link in the email. Defaults to the address
+    # the request came from.
+    public_url: str = ""
 
     @field_validator("database_url")
     @classmethod

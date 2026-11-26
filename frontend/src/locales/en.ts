@@ -452,11 +452,20 @@ const en = {
   "auth.forgot": "Forgot your password?",
   "auth.resetTitle": "Set a new password.",
   "auth.resetSub":
-    "Ask your household admin for a reset code, then enter it here.",
+    "Enter the code from the email, or the one your household admin gave you.",
   "auth.resetCode": "Reset code",
   "auth.resetSubmit": "Save new password",
   "auth.resetDone": "Your password has been changed. Sign in with the new one.",
   "auth.backToSignIn": "Back to sign in",
+  "auth.forgotTitle": "Reset your password.",
+  "auth.forgotSub":
+    "Enter the email of your account and we will send you a one-time code.",
+  "auth.sendCode": "Send code",
+  "auth.haveCode": "I already have a code",
+  "auth.resendCode": "Send a new code",
+  "auth.codeSent":
+    "If this email has an account, we sent a code to it. Check your inbox and the spam folder.",
+  "auth.fromLink": "Your code is filled in. Choose a new password.",
   "common.done": "Done",
   "form.copyCode": "Copy code",
   "form.currentPassword": "Current password",
@@ -480,7 +489,7 @@ const en = {
   "form.resetCodeIntro":
     "The code lets this member set a new password on the sign-in page. It works once and for 30 minutes. A new code replaces the old one.",
   "form.resetCodeHint":
-    "Give this code to the member in person or by message. It is shown only once.",
+    "Give this code to the member in person or by message. It is shown only once. On the sign-in page: Forgot your password? → I already have a code.",
   "modal.request": "Ask to buy something",
   "modal.subRequest": "Tell the household what you want to buy and why.",
   "modal.rejectRequest": "Reject the request?",
