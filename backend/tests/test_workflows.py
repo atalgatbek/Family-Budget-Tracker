@@ -65,6 +65,13 @@ async def test_purchase_requests_conditions_and_decisions(client, household):
     async with aclosing(member):
         await set_limit(client, family, food, 50000)
 
+        # Admins add expenses directly; requests are for members.
+        own = await client.post(
+            f"{base}/requests",
+            json={"category_id": food, "amount_kzt": 1000, "note": "Coffee"},
+        )
+        assert own.status_code == 403
+
         # No auto-approve rule yet: the request waits for an admin.
         pending = await member.post(
             f"{base}/requests",

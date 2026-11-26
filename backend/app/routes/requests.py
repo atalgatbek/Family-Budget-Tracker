@@ -120,6 +120,11 @@ async def list_requests(
 async def create_request(
     family_id: int, payload: PurchaseRequestInput, db: DB, member: Member
 ):
+    # An admin would only be approving their own request: they add expenses directly.
+    if member.role == "Admin":
+        raise HTTPException(
+            403, "Admins add expenses directly. Requests are for members."
+        )
     category = await category_for(db, family_id, payload.category_id)
     if not category.is_active:
         raise HTTPException(422, "Choose an active category.")

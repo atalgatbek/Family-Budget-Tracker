@@ -601,6 +601,8 @@ export const ruServer: Record<string, string> = {
     "Новый пароль должен отличаться от старого.",
   "We could not send the email. Try again in a few minutes.":
     "Не удалось отправить письмо. Попробуйте через несколько минут.",
+  "Admins add expenses directly. Requests are for members.":
+    "Администратор добавляет расходы сам. Запросы — для участников.",
   "This reset code is invalid or has expired.":
     "Код сброса неверный или уже не действует.",
   "Admins can reset passwords only for members who belong to no other household.":

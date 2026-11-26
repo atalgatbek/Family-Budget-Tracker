@@ -132,7 +132,7 @@ The overview shows official National Bank of Kazakhstan rates for USD, EUR, RUB,
 
 - **Rule:** an admin can set an amount up to which requests are approved automatically. A request within that amount is still sent for a decision when it would take its category over this month's limit.
 - Pending requests show what is left of the category's limit, and a warning when the request does not fit.
-- A member sees only their own requests and can cancel one while it is pending. A request can be decided only once; the row is locked while it is decided.
+- Only members ask; an admin adds expenses directly. A member sees only their own requests and can cancel one while it is pending. A request can be decided only once; the row is locked while it is decided.
 - Migration `006` adds `purchase_request` and the `family.auto_approve_kzt` rule.
 
 ## Notifications

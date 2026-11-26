@@ -607,6 +607,8 @@ export const kkServer: Record<string, string> = {
     "Жаңа құпиясөз ескісінен өзгеше болуы керек.",
   "We could not send the email. Try again in a few minutes.":
     "Хатты жіберу мүмкін болмады. Бірнеше минуттан кейін қайталап көріңіз.",
+  "Admins add expenses directly. Requests are for members.":
+    "Әкімші шығындарды өзі қосады. Сұраулар — мүшелерге арналған.",
   "This reset code is invalid or has expired.":
     "Қалпына келтіру коды қате немесе мерзімі өткен.",
   "Admins can reset passwords only for members who belong to no other household.":

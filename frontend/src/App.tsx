@@ -337,7 +337,7 @@ export default function App() {
                   <Plus size={18} /> {t("action.addExpense")}
                 </button>
               )}
-              {view === "requests" && (
+              {view === "requests" && family.role !== "Admin" && (
                 <button
                   className="button primary"
                   onClick={() => setAction({ kind: "request" })}
