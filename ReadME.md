@@ -47,6 +47,7 @@ Set these environment variables in the Vercel project:
 
 - `DATABASE_URL`: a hosted PostgreSQL database. `postgres://` and `postgresql://` URLs are accepted and used through psycopg 3.
 - `JWT_SECRET`: a random secret of at least 32 characters.
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM`: the mail server for password reset emails (see [Password reset by email](#password-reset-by-email)). Without them, *Forgot your password?* answers that the email could not be sent.
 - `ALLOWED_ORIGINS` (optional): only for extra custom domains. The deployment's own URLs (`VERCEL_URL`, `VERCEL_BRANCH_URL`, `VERCEL_PROJECT_PRODUCTION_URL`) are allowed automatically, and the session cookie is marked `Secure` on production and preview deployments.
 
 Things that differ from the Docker setup:
@@ -145,8 +146,32 @@ They are created on the server for: a new request (to admins), an automatic appr
 - **Limited sessions:** signing in creates a row in `user_session`. The cookie holds a signed token that names the session and expires after 30 minutes without activity; it is renewed while the person keeps using the site, up to 12 hours after sign-in (`SESSION_IDLE_MINUTES`, `SESSION_MAX_HOURS`).
 - **Signing out ends the session on the server**, so a copied cookie stops working. *Sign out everywhere* ends every session of the account.
 - **Change password** asks for the current one and signs out the account's other devices.
-- **Reset without email:** a household admin issues a one-time code for a member from the Household page. The code works once, for 30 minutes, is stored only as a SHA-256 hash, and a new code cancels the old one. The member enters it on the sign-in page (*Forgot your password?*); every session of that account then ends. An admin can reset only members who share no other household with other people, so a reset cannot open a household the admin does not belong to.
+- **Reset by email:** anyone, admins included, can ask for a code on the sign-in page (see below).
+- **Reset without email:** a household admin issues a one-time code for a member from the Household page. The code works once, for 30 minutes, is stored only as a SHA-256 hash, and a new code cancels the old one. The member enters it on the sign-in page (*Forgot your password?* → *I already have a code*); every session of that account then ends. An admin can reset only members who share no other household with other people, so a reset cannot open a household the admin does not belong to.
 - Migration `005` adds `user_session` and `password_reset`.
+
+## Password reset by email
+
+On the sign-in page, *Forgot your password?* asks for the account's email and sends a one-time code there, in the chosen language, with a button that opens the site with the code filled in. The code is the same kind an admin issues: 8 characters, one use, 30 minutes, stored only as a SHA-256 hash, and setting the new password ends every session of the account.
+
+- The answer is the same whether or not the email has an account.
+- At most one email a minute per account; requests count toward the sign-in rate limit (10 a minute per address).
+- If the email cannot be sent, the person is told so and no code is kept.
+- The link points only at the site the request came from (one of `ALLOWED_ORIGINS` or the Vercel URLs), or at `PUBLIC_URL` when set.
+
+Email goes through any SMTP server:
+
+| Setting | Meaning |
+| --- | --- |
+| `SMTP_HOST`, `SMTP_PORT` | Mail server, for example `smtp.gmail.com` and `465` |
+| `SMTP_USER`, `SMTP_PASSWORD` | Sign-in for the mail server |
+| `SMTP_SECURITY` | `auto` (SSL on port 465, otherwise STARTTLS), `ssl`, `starttls`, or `none` for a local test server |
+| `MAIL_FROM`, `MAIL_FROM_NAME` | Sender address (defaults to `SMTP_USER`) and name |
+| `PUBLIC_URL` | Optional fixed address of the site for the link |
+
+**Gmail** works without a domain: turn on 2-Step Verification for the Google account, create an app password (Google Account → Security → App passwords), then set `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_USER` and `MAIL_FROM` to the Gmail address, and `SMTP_PASSWORD` to the 16-character app password. Gmail allows about 500 emails a day.
+
+**Docker Compose** sends every email to a local [Mailpit](https://mailpit.axllent.org/) inbox at http://localhost:8025 unless SMTP settings are given in `.env`, so the whole flow can be tried without a real mailbox. **Local development without Docker** writes the email to the API log when `SMTP_HOST` is empty.
 
 ## Rate limits
 
@@ -186,6 +211,7 @@ The visitor address is read from `X-Real-IP` only behind a trusted proxy: on Ver
 | Savings goals (addition) | Household-scoped `savings_goal` table with range checks; atomic contributions; Admin-only management |
 | Purchase requests (addition) | `purchase_request` with composite household foreign keys; auto-approve rule; row lock on decision |
 | Notifications (addition) | `notification` per person with a de-duplication key |
+| Password reset by email (addition) | One-time code sent over SMTP; same answer for unknown emails; one email a minute per account |
 | Sessions and reset codes (addition) | `user_session` with idle and absolute expiry; hashed one-time `password_reset` codes |
 | Rate limits (addition) | `rate_limit` counters per key and minute, shared by all server copies |
 | Exchange rates (addition) | `exchange_rate` cache table keyed by date and currency; rates fetched server-side from the National Bank feed |

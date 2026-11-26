@@ -3718,3 +3718,10 @@ table tfoot td {
     width: 100%;
   }
 }
+
+.auth-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 18px;
+}

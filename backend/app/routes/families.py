@@ -1,13 +1,12 @@
-import secrets
 from datetime import timedelta
 from fastapi import APIRouter, HTTPException
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from ..auth import Admin, CurrentUser, DB, Member, now
-from ..models import Category, Family, FamilyMember, PasswordReset, User
+from ..auth import DB, Admin, CurrentUser, Member, now
+from ..models import Category, Family, FamilyMember, User
+from ..resets import RESET_MINUTES, new_reset_code
 from ..schemas import CategoryInput, FamilyInput, MemberInput
 from ..services import category_for, families_for
-from .auth import code_digest
 
 router = APIRouter(prefix="/families", tags=["Households"])
 
@@ -82,11 +81,6 @@ async def add_member(family_id: int, payload: MemberInput, db: DB, member: Admin
     return {"id": user.id, "full_name": user.full_name, "role": payload.role}
 
 
-# Letters and digits that are hard to confuse when read aloud or retyped.
-CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
-RESET_MINUTES = 30
-
-
 @router.post("/{family_id}/members/{user_id}/reset-code", status_code=201)
 async def issue_reset_code(family_id: int, user_id: int, db: DB, member: Admin):
     """Gives a member a one-time code to set a new password, without email.
@@ -112,22 +106,9 @@ async def issue_reset_code(family_id: int, user_id: int, db: DB, member: Admin):
             403,
             "Admins can reset passwords only for members who belong to no other household.",
         )
-    code = "".join(secrets.choice(CODE_ALPHABET) for _ in range(8))
-    # Older unused codes stop working when a new one is issued.
-    await db.execute(
-        update(PasswordReset)
-        .where(PasswordReset.user_id == user_id, PasswordReset.used_at.is_(None))
-        .values(used_at=now())
-    )
-    reset = PasswordReset(
-        user_id=user_id,
-        created_by=member.user_id,
-        code_hash=code_digest(code),
-        expires_at=now() + timedelta(minutes=RESET_MINUTES),
-    )
-    db.add(reset)
+    code = await new_reset_code(db, user_id, created_by=member.user_id)
     await db.commit()
-    return {"code": f"{code[:4]}-{code[4:]}", "expires_at": reset.expires_at}
+    return {"code": code, "expires_at": now() + timedelta(minutes=RESET_MINUTES)}
 
 
 @router.get("/{family_id}/categories")

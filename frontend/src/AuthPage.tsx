@@ -15,7 +15,17 @@ import { ThemeToggle } from "./theme";
 import { LanguageSwitch, useI18n } from "./i18n";
 import type { Session } from "./types";
 
-type Mode = "login" | "register" | "reset";
+type Mode = "login" | "register" | "forgot" | "reset";
+
+/** A link from the reset email opens the page with ?reset=CODE&email=... */
+function resetLink() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("reset");
+  if (!code) return null;
+  // Keep the code out of the address bar and the browser history.
+  window.history.replaceState(null, "", window.location.pathname);
+  return { code, email: params.get("email") ?? "" };
+}
 
 export default function AuthPage({
   onLogin,
@@ -24,10 +34,14 @@ export default function AuthPage({
   onLogin: (session: Session) => void;
   expired?: boolean;
 }) {
-  const { t } = useI18n();
-  const [mode, setMode] = useState<Mode>("login");
+  const { lang, t } = useI18n();
+  const [link] = useState(resetLink);
+  const [mode, setMode] = useState<Mode>(link ? "reset" : "login");
   const register = mode === "register";
-  const [notice, setNotice] = useState(expired ? t("auth.expired") : "");
+  const [email, setEmail] = useState(link?.email ?? "");
+  const [notice, setNotice] = useState(
+    link ? t("auth.fromLink") : expired ? t("auth.expired") : "",
+  );
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -37,6 +51,16 @@ export default function AuthPage({
     setError("");
     const values = Object.fromEntries(new FormData(event.currentTarget));
     try {
+      if (mode === "forgot") {
+        await api("/auth/forgot", {
+          method: "POST",
+          body: JSON.stringify({ email: values.email, lang }),
+        });
+        setEmail(String(values.email));
+        switchMode("reset");
+        setNotice(t("auth.codeSent"));
+        return;
+      }
       if (mode === "reset") {
         if (values.new_password !== values.repeat_password)
           throw new Error(t("form.passwordsDiffer"));
@@ -48,6 +72,7 @@ export default function AuthPage({
             new_password: values.new_password,
           }),
         });
+        setEmail(String(values.email));
         switchMode("login");
         setNotice(t("auth.resetDone"));
         return;
@@ -69,18 +94,18 @@ export default function AuthPage({
     setError("");
     setNotice("");
   }
-  const title =
-    mode === "reset"
-      ? "auth.resetTitle"
-      : register
-        ? "auth.registerTitle"
-        : "auth.loginTitle";
-  const subtitle =
-    mode === "reset"
-      ? "auth.resetSub"
-      : register
-        ? "auth.registerSub"
-        : "auth.loginSub";
+  const title = {
+    login: "auth.loginTitle",
+    register: "auth.registerTitle",
+    forgot: "auth.forgotTitle",
+    reset: "auth.resetTitle",
+  } as const;
+  const subtitle = {
+    login: "auth.loginSub",
+    register: "auth.registerSub",
+    forgot: "auth.forgotSub",
+    reset: "auth.resetSub",
+  } as const;
   return (
     <main className="auth-layout">
       <div className="floating-controls">
@@ -146,8 +171,8 @@ export default function AuthPage({
           <span className="small-logo">
             <ChartNoAxesCombined size={25} />
           </span>
-          <h2>{t(title)}</h2>
-          <p>{t(subtitle)}</p>
+          <h2>{t(title[mode])}</h2>
+          <p>{t(subtitle[mode])}</p>
           {notice && (
             <div className="auth-notice" role="status">
               <LockKeyhole size={15} />
@@ -186,6 +211,7 @@ export default function AuthPage({
                 autoComplete="email"
                 maxLength={100}
                 placeholder="you@example.com"
+                defaultValue={email}
                 required
               />
             </label>
@@ -199,6 +225,7 @@ export default function AuthPage({
                     maxLength={20}
                     placeholder="ABCD-2345"
                     className="code-input"
+                    defaultValue={link?.code ?? ""}
                     required
                   />
                 </label>
@@ -227,7 +254,7 @@ export default function AuthPage({
                 </label>
               </>
             )}
-            {mode !== "reset" && (
+            {(mode === "login" || mode === "register") && (
               <label>
                 {t("auth.password")}
                 <div className="password-field">
@@ -260,7 +287,7 @@ export default function AuthPage({
               <button
                 type="button"
                 className="text-button forgot-link"
-                onClick={() => switchMode("reset")}
+                onClick={() => switchMode("forgot")}
               >
                 {t("auth.forgot")}
               </button>
@@ -270,23 +297,36 @@ export default function AuthPage({
               {t(
                 busy
                   ? "auth.wait"
-                  : mode === "reset"
-                    ? "auth.resetSubmit"
-                    : register
-                      ? "auth.create"
-                      : "auth.signIn",
+                  : (
+                      {
+                        login: "auth.signIn",
+                        register: "auth.create",
+                        forgot: "auth.sendCode",
+                        reset: "auth.resetSubmit",
+                      } as const
+                    )[mode],
               )}
               <ArrowRight size={18} />
             </button>
           </form>
           <p className="auth-switch">
-            {mode === "reset" ? (
-              <button
-                className="text-button"
-                onClick={() => switchMode("login")}
-              >
-                {t("auth.backToSignIn")}
-              </button>
+            {mode === "forgot" || mode === "reset" ? (
+              <span className="auth-links">
+                <button
+                  className="text-button"
+                  onClick={() =>
+                    switchMode(mode === "forgot" ? "reset" : "forgot")
+                  }
+                >
+                  {t(mode === "forgot" ? "auth.haveCode" : "auth.resendCode")}
+                </button>
+                <button
+                  className="text-button"
+                  onClick={() => switchMode("login")}
+                >
+                  {t("auth.backToSignIn")}
+                </button>
+              </span>
             ) : (
               <>
                 {t(register ? "auth.already" : "auth.newHere")}{" "}

@@ -123,6 +123,16 @@ class PasswordChange(Input):
     new_password: Password
 
 
+class ForgotPassword(Input):
+    email: EmailStr = Field(max_length=100)
+    lang: Literal["kk", "ru", "en"] = "en"
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value):
+        return value.lower()
+
+
 class PasswordReset(Input):
     email: EmailStr = Field(max_length=100)
     code: str = Field(min_length=4, max_length=20)

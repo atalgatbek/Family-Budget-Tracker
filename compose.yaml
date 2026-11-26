@@ -27,6 +27,15 @@ services:
       UPLOAD_DIR: /app/uploads
       # Nginx in front of the API passes the visitor address in X-Real-IP.
       TRUST_PROXY_HEADERS: "true"
+      # Reset emails go to the local Mailpit inbox (http://localhost:8025)
+      # unless real SMTP settings are given in .env.
+      SMTP_HOST: ${SMTP_HOST:-mail}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_SECURITY: ${SMTP_SECURITY:-none}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-family-budget@localhost}
+      PUBLIC_URL: ${PUBLIC_URL:-}
     command: ["alembic", "-c", "alembic.ini", "upgrade", "head"]
     depends_on:
       db:
@@ -47,6 +56,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+  mail:
+    image: axllent/mailpit:v1.20.0
+    restart: unless-stopped
+    ports:
+      - "${MAIL_UI_PORT:-8025}:8025"
 
   web:
     build: ./frontend
